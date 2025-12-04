@@ -7,6 +7,73 @@ from backend.core.constants import API_TITLE, Prefix, Tags
 
 app = FastAPI(title=API_TITLE)
 
+#
+# Messages
+#
+messages_router = APIRouter(prefix=Prefix.CHAT_MESSAGES, tags=[Tags.MESSAGES])
+
+
+@messages_router.post("", status_code=status.HTTP_201_CREATED, summary="Create message in chat")
+async def create_message(
+    chatId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {"message": "message created", "chatId": chatId, "data": payload}
+
+
+@messages_router.get("", summary="List messages in chat")
+async def list_messages(chatId: str) -> Dict[str, Any]:
+    return {"chatId": chatId, "items": []}
+
+
+@messages_router.get("/{messageId}", summary="Get message by ID")
+async def get_message(chatId: str, messageId: str) -> Dict[str, Any]:
+    return {"chatId": chatId, "messageId": messageId}
+
+
+@messages_router.put("/{messageId}", summary="Update message by ID")
+async def update_message(
+    chatId: str, messageId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {
+        "message": "message updated",
+        "chatId": chatId,
+        "messageId": messageId,
+        "data": payload,
+    }
+
+
+@messages_router.delete(
+    "/{messageId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete message by ID",
+)
+async def delete_message(chatId: str, messageId: str) -> None:
+    return
+
+#
+# Chat Participants
+#
+participants_router = APIRouter(prefix=Prefix.CHAT_PARTICIPANTS, tags=[Tags.PARTICIPANTS])
+
+
+@participants_router.get("", summary="List participants in a chat")
+async def list_participants(chatId: str) -> Dict[str, Any]:
+    return {"chatId": chatId, "items": []}
+
+
+@participants_router.post("", summary="Add participant to a chat")
+async def add_participant(
+    chatId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {"message": "participant added", "chatId": chatId, "data": payload}
+
+
+@participants_router.delete(
+    "/{userId}", status_code=status.HTTP_204_NO_CONTENT, summary="Remove participant from a chat"
+)
+async def remove_participant(chatId: str, userId: str) -> None:
+    return
+
 
 # Chats
 chats_router = APIRouter(prefix=Prefix.CHATS, tags=[Tags.CHATS])
@@ -99,6 +166,10 @@ async def signup(payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]
 async def login(payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
     return {"access_token": "fake-token", "token_type": "bearer"}
 
+@auth_router.get("/me", summary="Get current user")
+async def auth_me() -> Dict[str, Any]:
+    return {"id": "current-user-id", "username": "current_user"}
+
 
 @auth_router.post(
     "/logout",
@@ -117,6 +188,10 @@ users_router = APIRouter(prefix=Prefix.USERS, tags=[Tags.USERS])
 async def list_users() -> Dict[str, Any]:
     return {"items": []}
 
+@users_router.post("", status_code=status.HTTP_201_CREATED, summary="Create a user (admin)")
+async def create_user(payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
+    return {"message": "user created", "data": payload}
+
 
 @users_router.get("/{id}", summary="Get a specific user by ID")
 async def get_user(id: str) -> Dict[str, Any]:
@@ -128,6 +203,12 @@ async def update_user(
     id: str, payload: Dict[str, Any] = Body(default=None)
 ) -> Dict[str, Any]:
     return {"message": "user updated", "id": id, "data": payload}
+
+@users_router.delete(
+    "/{id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete user (admin)"
+)
+async def delete_user(id: str) -> None:
+    return
 
 
 # Recipients
@@ -297,6 +378,47 @@ async def generate_file_embeddings(
 async def get_file_embeddings(fileId: str) -> Dict[str, Any]:
     return {"fileId": fileId, "embeddings": []}
 
+@files_router.get("/{id}/download", summary="Download file by ID")
+async def download_file(id: str) -> Dict[str, Any]:
+    return {"id": id, "download": "link"}
+
+
+@files_router.get("/{fileId}/access", summary="List file access control entries")
+async def list_file_access(fileId: str) -> Dict[str, Any]:
+    return {"fileId": fileId, "items": []}
+
+
+@files_router.post(
+    "/{fileId}/access", status_code=status.HTTP_201_CREATED, summary="Grant access to caregiver"
+)
+async def grant_file_access(
+    fileId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {"message": "access granted", "fileId": fileId, "data": payload}
+
+
+@files_router.put(
+    "/{fileId}/access/{caregiverId}", summary="Update caregiver access level for file"
+)
+async def update_file_access(
+    fileId: str, caregiverId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {
+        "message": "access updated",
+        "fileId": fileId,
+        "caregiverId": caregiverId,
+        "data": payload,
+    }
+
+
+@files_router.delete(
+    "/{fileId}/access/{caregiverId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Revoke caregiver access to file",
+)
+async def revoke_file_access(fileId: str, caregiverId: str) -> None:
+    return
+
 
 # Access (invitations and access revocation)
 caregiver_invitations_router = APIRouter(
@@ -313,6 +435,18 @@ async def send_invitation(
     caregiverId: str, payload: Dict[str, Any] = Body(default=None)
 ) -> Dict[str, Any]:
     return {"message": "invitation sent", "caregiverId": caregiverId, "data": payload}
+
+@caregiver_invitations_router.get("", summary="List invitations sent by caregiver")
+async def list_sent_invitations(caregiverId: str) -> Dict[str, Any]:
+    return {"caregiverId": caregiverId, "items": []}
+
+@caregiver_invitations_router.delete(
+    "/{invitationId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cancel a pending invitation",
+)
+async def cancel_invitation(caregiverId: str, invitationId: str) -> None:
+    return
 
 
 recipient_invitations_router = APIRouter(
@@ -348,6 +482,12 @@ async def decline_invitation(recipientId: str, invitationId: str) -> Dict[str, A
         "invitationId": invitationId,
     }
 
+@recipient_invitations_router.get(
+    "/{invitationId}", summary="Get recipient invitation details"
+)
+async def get_recipient_invitation(recipientId: str, invitationId: str) -> Dict[str, Any]:
+    return {"recipientId": recipientId, "invitationId": invitationId, "status": "pending"}
+
 
 recipient_access_router = APIRouter(
     prefix=Prefix.RECIPIENT_ACCESS, tags=[Tags.ACCESS]
@@ -362,6 +502,38 @@ recipient_access_router = APIRouter(
 async def revoke_caregiver_access(recipientId: str, caregiverId: str) -> None:
     return
 
+
+@recipient_access_router.put(
+    "/{caregiverId}",
+    summary="Update caregiver access level for recipient",
+)
+async def update_caregiver_access(
+    recipientId: str, caregiverId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {
+        "message": "access updated",
+        "recipientId": recipientId,
+        "caregiverId": caregiverId,
+        "data": payload,
+    }
+
+
+
+caregiver_recipients_router = APIRouter(
+    prefix=Prefix.CAREGIVER_RECIPIENTS, tags=[Tags.RELATIONS]
+)
+
+
+@caregiver_recipients_router.get("", summary="List recipients assigned to caregiver")
+async def list_caregiver_recipients(caregiverId: str) -> Dict[str, Any]:
+    return {"caregiverId": caregiverId, "items": []}
+
+
+@caregiver_recipients_router.get(
+    "/{recipientId}", summary="Get caregiver-recipient relationship details"
+)
+async def get_caregiver_recipient(caregiverId: str, recipientId: str) -> Dict[str, Any]:
+    return {"caregiverId": caregiverId, "recipientId": recipientId, "access_level": "read"}
 
 # Security
 security_keys_router = APIRouter(prefix=Prefix.SECURITY_KEYS, tags=[Tags.SECURITY])
@@ -450,6 +622,21 @@ async def report_incident(payload: Dict[str, Any] = Body(default=None)) -> Dict[
 async def get_incident(id: str) -> Dict[str, Any]:
     return {"id": id}
 
+#
+# Ops
+#
+ops_router = APIRouter(tags=[Tags.OPS])
+
+
+@ops_router.get("/healthz", summary="Liveness probe")
+async def healthz() -> Dict[str, Any]:
+    return {"status": "ok"}
+
+
+@ops_router.get("/readyz", summary="Readiness probe")
+async def readyz() -> Dict[str, Any]:
+    return {"status": "ready"}
+
 
 # Router registration
 app.include_router(chats_router)
@@ -463,9 +650,13 @@ app.include_router(recipient_files_router)
 app.include_router(caregiver_invitations_router)
 app.include_router(recipient_invitations_router)
 app.include_router(recipient_access_router)
+app.include_router(caregiver_recipients_router)
 app.include_router(security_keys_router)
 app.include_router(security_policies_router)
 app.include_router(files_router)
+app.include_router(messages_router)
+app.include_router(participants_router)
+app.include_router(ops_router)
 app.include_router(compliance_router)
 
 
