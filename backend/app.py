@@ -41,6 +41,24 @@ async def delete_chat(id: str) -> None:
     return
 
 
+@chats_router.post(
+    "/{chatId}/embeddings",
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate embeddings for a chat",
+)
+async def generate_chat_embeddings(
+    chatId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {"message": "embeddings generated", "chatId": chatId, "data": payload}
+
+
+@chats_router.get(
+    "/{chatId}/embeddings", summary="Get embeddings for a chat"
+)
+async def get_chat_embeddings(chatId: str) -> Dict[str, Any]:
+    return {"chatId": chatId, "embeddings": []}
+
+
 # User Chats
 user_chats_router = APIRouter(prefix=Prefix.USER_CHATS, tags=[Tags.USER_CHATS])
 
