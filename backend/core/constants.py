@@ -19,6 +19,7 @@ class Tags:
     ACCESS: Final[str] = "Access"
     SECURITY: Final[str] = "Security"
     COMPLIANCE: Final[str] = "Compliance"
+    FILES: Final[str] = "Files"
 
 
 class Prefix:
@@ -36,5 +37,6 @@ class Prefix:
     SECURITY_POLICIES: Final[str] = "/security/policies"
     COMPLIANCE: Final[str] = "/compliance"
     RECIPIENT_CAREGIVERS: Final[str] = "/recipients/{recipientId}/caregivers"
+    FILES: Final[str] = "/files"
 
 

@@ -259,6 +259,45 @@ async def delete_recipient_file(id: str, fileId: str) -> None:
     return
 
 
+# Files (top-level)
+files_router = APIRouter(prefix=Prefix.FILES, tags=[Tags.FILES])
+
+
+@files_router.post("", status_code=status.HTTP_201_CREATED, summary="Upload a file")
+async def upload_file(payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
+    return {"message": "file uploaded", "data": payload}
+
+
+@files_router.get("/{id}", summary="Get a specific file by ID")
+async def get_file(id: str) -> Dict[str, Any]:
+    return {"id": id}
+
+
+@files_router.delete(
+    "/{id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a file by ID"
+)
+async def delete_file(id: str) -> None:
+    return
+
+
+@files_router.post(
+    "/{fileId}/embeddings",
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate embeddings for a file",
+)
+async def generate_file_embeddings(
+    fileId: str, payload: Dict[str, Any] = Body(default=None)
+) -> Dict[str, Any]:
+    return {"message": "embeddings generated", "fileId": fileId, "data": payload}
+
+
+@files_router.get(
+    "/{fileId}/embeddings", summary="Get embeddings for a file"
+)
+async def get_file_embeddings(fileId: str) -> Dict[str, Any]:
+    return {"fileId": fileId, "embeddings": []}
+
+
 # Access (invitations and access revocation)
 caregiver_invitations_router = APIRouter(
     prefix=Prefix.CAREGIVER_INVITATIONS, tags=[Tags.ACCESS]
@@ -426,6 +465,7 @@ app.include_router(recipient_invitations_router)
 app.include_router(recipient_access_router)
 app.include_router(security_keys_router)
 app.include_router(security_policies_router)
+app.include_router(files_router)
 app.include_router(compliance_router)
 
 
