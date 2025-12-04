@@ -3,6 +3,20 @@ from typing import Any, Dict
 from fastapi import APIRouter, Body, FastAPI, Path, status
 
 from backend.core.constants import API_TITLE, Prefix, Tags
+from backend.routers import (
+    auth as auth_r,
+    users as users_r,
+    chats as chats_r,
+    messages as messages_r,
+    participants as participants_r,
+    recipients as recipients_r,
+    caregivers as caregivers_r,
+    access as access_r,
+    files as files_r,
+    security as security_r,
+    compliance as compliance_r,
+    ops as ops_r,
+)
 
 
 app = FastAPI(title=API_TITLE)
@@ -638,26 +652,23 @@ async def readyz() -> Dict[str, Any]:
     return {"status": "ready"}
 
 
-# Router registration
-app.include_router(chats_router)
-app.include_router(user_chats_router)
-app.include_router(auth_router)
-app.include_router(users_router)
-app.include_router(recipients_router)
-app.include_router(recipient_caregivers_router)
-app.include_router(caregivers_router)
-app.include_router(recipient_files_router)
-app.include_router(caregiver_invitations_router)
-app.include_router(recipient_invitations_router)
-app.include_router(recipient_access_router)
-app.include_router(caregiver_recipients_router)
-app.include_router(security_keys_router)
-app.include_router(security_policies_router)
-app.include_router(files_router)
-app.include_router(messages_router)
-app.include_router(participants_router)
-app.include_router(ops_router)
-app.include_router(compliance_router)
+# Router registration (modular routers)
+app.include_router(chats_r.router)
+app.include_router(messages_r.router)
+app.include_router(participants_r.router)
+app.include_router(auth_r.router)
+app.include_router(users_r.router)
+app.include_router(recipients_r.router)
+app.include_router(caregivers_r.router)
+app.include_router(access_r.recipient_access_router)
+app.include_router(access_r.caregiver_recipients_router)
+app.include_router(access_r.caregiver_invitations_router)
+app.include_router(access_r.recipient_invitations_router)
+app.include_router(files_r.router)
+app.include_router(security_r.keys_router)
+app.include_router(security_r.policies_router)
+app.include_router(compliance_r.router)
+app.include_router(ops_r.router)
 
 
 if __name__ == "__main__":
