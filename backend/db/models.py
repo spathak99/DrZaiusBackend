@@ -5,10 +5,26 @@ from typing import List, Optional
 from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from backend.schemas.common import InvitationStatus
 
 
 class Base(DeclarativeBase):
     pass
+
+
+# String length and FK action constants
+USERNAME_MAX_LEN = 255
+EMAIL_MAX_LEN = 255
+PASSWORD_HASH_MAX_LEN = 255
+ROLE_MAX_LEN = 20
+ACCESS_LEVEL_MAX_LEN = 20
+CHAT_NAME_MAX_LEN = 255
+FILE_NAME_MAX_LEN = 255
+DOWNLOAD_LINK_MAX_LEN = 255
+INVITATION_STATUS_MAX_LEN = 20
+
+FK_CASCADE = "CASCADE"
+FK_SET_NULL = "SET NULL"
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
@@ -27,10 +43,10 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    username: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(20))
+    username: Mapped[str] = mapped_column(String(USERNAME_MAX_LEN), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(EMAIL_MAX_LEN), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(PASSWORD_HASH_MAX_LEN))
+    role: Mapped[str] = mapped_column(String(ROLE_MAX_LEN))
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
@@ -41,9 +57,9 @@ class RecipientCaregiverAccess(Base):
     __tablename__ = "recipient_caregiver_access"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    caregiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    access_level: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_CASCADE))
+    caregiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_CASCADE))
+    access_level: Mapped[Optional[str]] = mapped_column(String(ACCESS_LEVEL_MAX_LEN), nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
@@ -52,8 +68,8 @@ class Chat(Base):
     __tablename__ = "chats"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    name: Mapped[Optional[str]] = mapped_column(String(CHAT_NAME_MAX_LEN), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_SET_NULL), nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
@@ -66,8 +82,8 @@ class ChatParticipant(Base):
     __tablename__ = "chat_participants"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    chat_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"))
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    chat_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chats.id", ondelete=FK_CASCADE))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_CASCADE))
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
@@ -79,8 +95,8 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    chat_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"))
-    sender_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    chat_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chats.id", ondelete=FK_CASCADE))
+    sender_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_SET_NULL), nullable=True)
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
@@ -93,9 +109,9 @@ class Invitation(Base):
     __tablename__ = "invitations"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    caregiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    status: Mapped[str] = mapped_column(String(20), default="pending")
+    caregiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_CASCADE))
+    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_CASCADE))
+    status: Mapped[str] = mapped_column(String(INVITATION_STATUS_MAX_LEN), default=InvitationStatus.pending.value)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
@@ -104,9 +120,9 @@ class File(Base):
     __tablename__ = "files"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    file_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    download_link: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_CASCADE))
+    file_name: Mapped[Optional[str]] = mapped_column(String(FILE_NAME_MAX_LEN), nullable=True)
+    download_link: Mapped[Optional[str]] = mapped_column(String(DOWNLOAD_LINK_MAX_LEN), nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
@@ -115,9 +131,9 @@ class FileAccess(Base):
     __tablename__ = "file_access"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("files.id", ondelete="CASCADE"))
-    caregiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    access_level: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    file_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("files.id", ondelete=FK_CASCADE))
+    caregiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete=FK_CASCADE))
+    access_level: Mapped[Optional[str]] = mapped_column(String(ACCESS_LEVEL_MAX_LEN), nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
