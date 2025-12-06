@@ -1,5 +1,7 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel
+from backend.schemas.common import Timestamped
 
 
 class SecurityPolicyCreate(BaseModel):
@@ -14,5 +16,17 @@ class SecurityPolicyUpdate(BaseModel):
 
 class KeyGenerateRequest(BaseModel):
     algorithm: str = "rsa-2048"
+
+
+class SecurityPolicyResponse(Timestamped):
+    id: UUID
+    name: str
+    rules: Optional[dict] = None
+
+
+class KeyPairResponse(BaseModel):
+    key_id: UUID
+    algorithm: str
+    public_key_pem: str
 
 

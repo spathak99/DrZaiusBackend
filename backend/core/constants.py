@@ -91,6 +91,7 @@ class Summaries:
     FILE_ACCESS_GRANT: Final[str] = "Grant access to caregiver"
     FILE_ACCESS_UPDATE: Final[str] = "Update caregiver access level for file"
     FILE_ACCESS_REVOKE: Final[str] = "Revoke caregiver access to file"
+    RECIPIENT_FILES_LIST: Final[str] = "Get a list of a recipient's files"
     RECIPIENT_CAREGIVERS_LIST: Final[str] = "Get a recipient's assigned caregivers"
     RECIPIENT_CAREGIVER_ASSIGN: Final[str] = "Assign caregiver to a recipient"
     RECIPIENT_CAREGIVER_REVOKE: Final[str] = "Recipient revokes caregiver access"
@@ -149,4 +150,21 @@ class Messages:
     RISK_ASSESSMENT_STARTED: Final[str] = "risk assessment started"
     INCIDENT_REPORTED: Final[str] = "incident reported"
     CAREGIVER_ASSIGNED: Final[str] = "caregiver assigned"
+
+
+class Roles:
+    RECIPIENT: Final[str] = "recipient"
+    CAREGIVER: Final[str] = "caregiver"
+
+
+class InvitationStatus:
+    PENDING: Final[str] = "pending"
+    ACCEPTED: Final[str] = "accepted"
+    DECLINED: Final[str] = "declined"
+
+
+class AccessLevel:
+    READ: Final[str] = "read"
+    WRITE: Final[str] = "write"
+    ADMIN: Final[str] = "admin"
 

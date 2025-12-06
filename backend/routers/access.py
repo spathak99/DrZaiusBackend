@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from fastapi import APIRouter, Body, status
-from backend.core.constants import Prefix, Tags, Summaries, Messages
+from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel
 from backend.services import AccessService
 from backend.schemas import CaregiverAccessUpdate
 
@@ -43,7 +43,10 @@ async def list_caregiver_recipients(caregiverId: str) -> Dict[str, Any]:
 
 @caregiver_recipients_router.get("/{recipientId}", summary=Summaries.CAREGIVER_RECIPIENT_GET)
 async def get_caregiver_recipient(caregiverId: str, recipientId: str) -> Dict[str, Any]:
-    return service.get_caregiver_recipient(caregiverId, recipientId)
+    rel = service.get_caregiver_recipient(caregiverId, recipientId)
+    if "access_level" not in rel:
+        rel["access_level"] = AccessLevel.READ
+    return rel
 
 
 @caregiver_invitations_router.post("", status_code=status.HTTP_201_CREATED, summary=Summaries.INVITATION_SEND)
@@ -78,6 +81,6 @@ async def decline_invitation(recipientId: str, invitationId: str) -> Dict[str, A
 
 @recipient_invitations_router.get("/{invitationId}", summary=Summaries.INVITATION_GET)
 async def get_recipient_invitation(recipientId: str, invitationId: str) -> Dict[str, Any]:
-    return {"recipientId": recipientId, "invitationId": invitationId, "status": "pending"}
+    return {"recipientId": recipientId, "invitationId": invitationId, "status": InvitationStatus.PENDING}
 
 
