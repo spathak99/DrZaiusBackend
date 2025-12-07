@@ -22,6 +22,10 @@ def _b64url(data: bytes) -> str:
 def _b64url_json(obj: Dict[str, Any]) -> str:
     return _b64url(json.dumps(obj, separators=(",", ":"), sort_keys=True).encode("utf-8"))
 
+def _b64url_decode(data: str) -> bytes:
+    # add padding
+    pad = '=' * (-len(data) % 4)
+    return base64.urlsafe_b64decode(data + pad)
 
 def hash_password(password: str, *, iterations: int = 100_000) -> str:
     salt = os.urandom(16)
@@ -58,6 +62,36 @@ def issue_token(user_id: str, now: Optional[int] = None) -> str:
     signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
     sig = hmac.new(secret, signing_input, sha256).digest()
     return f"{encoded_header}.{encoded_payload}.{_b64url(sig)}"
+
+def verify_token(token: str) -> Dict[str, Any]:
+    """
+    Verify HS256 token signature and expiry. Returns payload dict.
+    Raises ValueError on failure.
+    """
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            raise ValueError(Errors.MALFORMED_TOKEN)
+        encoded_header, encoded_payload, encoded_sig = parts
+        header = json.loads(_b64url_decode(encoded_header).decode("utf-8"))
+        if header.get("alg") != AuthConst.JWT_ALG_HS256 or header.get("typ") != AuthConst.JWT_TYP_JWT:
+            raise ValueError(Errors.MALFORMED_TOKEN)
+        payload = json.loads(_b64url_decode(encoded_payload).decode("utf-8"))
+        signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
+        settings = get_settings()
+        expected = hmac.new(settings.auth_secret.encode("utf-8"), signing_input, sha256).digest()
+        provided = _b64url_decode(encoded_sig)
+        if not hmac.compare_digest(expected, provided):
+            raise ValueError(Errors.INVALID_CREDENTIALS)
+        now = int(time.time())
+        exp = int(payload.get(AuthConst.JWT_CLAIM_EXP, 0))
+        if exp < now:
+            raise ValueError(Errors.INVALID_CREDENTIALS)
+        return payload
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError(Errors.MALFORMED_TOKEN)
 
 
 class AuthService:

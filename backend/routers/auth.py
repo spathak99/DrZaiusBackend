@@ -1,10 +1,13 @@
-from typing import Any, Dict
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from typing import Any, Dict, Optional
+from fastapi import APIRouter, Body, Depends, HTTPException, Header, status
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Errors
 from backend.db.database import get_db
-from backend.schemas import SignupRequest, LoginRequest, TokenResponse
+from backend.schemas import SignupRequest, LoginRequest, TokenResponse, MeResponse
 from backend.services.auth_service import AuthService
+from sqlalchemy import select
+from backend.db.models import User
+from backend.core.constants import Auth as AuthConst
 
 
 router = APIRouter(prefix=Prefix.AUTH, tags=[Tags.AUTH])
@@ -40,10 +43,32 @@ async def login(payload: LoginRequest = Body(default=None), db: Session = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)
 
 
-@router.get("/me", summary=Summaries.AUTH_ME)
-async def auth_me() -> Dict[str, Any]:
-    # Placeholder: implement token parsing and user lookup later
-    return {"message": "not_implemented"}
+@router.get("/me", summary=Summaries.AUTH_ME, response_model=MeResponse)
+async def auth_me(
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    if not authorization:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.UNAUTHORIZED)
+    scheme, _, token = authorization.partition(" ")
+    if not token or scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.UNAUTHORIZED)
+    try:
+        payload = service.verify_token(token)
+        user_id = payload.get(AuthConst.JWT_CLAIM_SUB)
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.UNAUTHORIZED)
+        user = db.scalar(select(User).where(User.id == user_id))
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.UNAUTHORIZED)
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+        }
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.LOGOUT)

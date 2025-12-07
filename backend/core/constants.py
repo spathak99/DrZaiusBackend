@@ -183,6 +183,8 @@ class Errors:
     USERNAME_TAKEN: Final[str] = "username_taken"
     EMAIL_TAKEN: Final[str] = "email_taken"
     INVALID_CREDENTIALS: Final[str] = "invalid_credentials"
+    UNAUTHORIZED: Final[str] = "unauthorized"
+    MALFORMED_TOKEN: Final[str] = "malformed_token"
 
 
 class Defaults:
