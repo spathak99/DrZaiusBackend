@@ -1,4 +1,4 @@
-from backend.schemas.common import Role, InvitationStatus, AccessLevel, Timestamped
+from backend.schemas.common import Role, InvitationStatus, AccessLevel, Timestamped, StorageProvider
 from backend.schemas.chat import ChatCreate, ChatUpdate, ChatResponse
 from backend.schemas.participants import ChatParticipantAdd, ChatParticipantResponse
 from backend.schemas.message import MessageCreate, MessageUpdate, MessageResponse
@@ -32,6 +32,7 @@ __all__ = [
     "Role",
     "InvitationStatus",
     "AccessLevel",
+    "StorageProvider",
     "Timestamped",
     "ChatCreate",
     "ChatUpdate",
