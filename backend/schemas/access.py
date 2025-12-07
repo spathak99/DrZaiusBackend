@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel
 from backend.schemas.common import AccessLevel, Timestamped
@@ -9,13 +10,13 @@ class CaregiverAccessUpdate(BaseModel):
 
 class CaregiverAssign(BaseModel):
     caregiver_id: UUID
-    access_level: AccessLevel | None = None
+    access_level: Optional[AccessLevel] = None
 
 
 class CaregiverAccessResponse(Timestamped):
     id: UUID
     recipient_id: UUID
     caregiver_id: UUID
-    access_level: AccessLevel | None = None
+    access_level: Optional[AccessLevel] = None
 
 
