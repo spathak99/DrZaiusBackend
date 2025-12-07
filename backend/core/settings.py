@@ -10,6 +10,14 @@ class Settings(BaseSettings):
         default="postgresql+psycopg2://postgres:postgres@localhost:5432/drzaius",
         description="SQLAlchemy database URL for Postgres",
     )
+    auth_secret: str = Field(
+        default="dev-insecure-secret-change-me",
+        description="Secret used to sign auth tokens (HS256)",
+    )
+    auth_token_exp_minutes: int = Field(
+        default=60,
+        description="Access token expiry in minutes",
+    )
     auto_create_db: bool = Field(
         default=False,
         description="If true, create tables automatically on startup (dev only)",

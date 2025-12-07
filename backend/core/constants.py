@@ -168,3 +168,23 @@ class AccessLevel:
     WRITE: Final[str] = "write"
     ADMIN: Final[str] = "admin"
 
+
+class Auth:
+    JWT_ALG_HS256: Final[str] = "HS256"
+    JWT_TYP_JWT: Final[str] = "JWT"
+    JWT_CLAIM_SUB: Final[str] = "sub"
+    JWT_CLAIM_IAT: Final[str] = "iat"
+    JWT_CLAIM_EXP: Final[str] = "exp"
+    PASSWORD_SCHEME_PBKDF2_SHA256: Final[str] = "pbkdf2_sha256"
+    PBKDF2_HASH_NAME: Final[str] = "sha256"
+
+
+class Errors:
+    USERNAME_TAKEN: Final[str] = "username_taken"
+    EMAIL_TAKEN: Final[str] = "email_taken"
+    INVALID_CREDENTIALS: Final[str] = "invalid_credentials"
+
+
+class Defaults:
+    STORAGE_PROVIDER: Final[str] = "gcs"
+
