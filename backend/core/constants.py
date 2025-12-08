@@ -215,3 +215,14 @@ class Errors:
 class Defaults:
     STORAGE_PROVIDER: Final[str] = "gcs"
 
+class Fields:
+    ID: Final[str] = "id"
+    USERNAME: Final[str] = "username"
+    EMAIL: Final[str] = "email"
+    ROLE: Final[str] = "role"
+    CREATED_AT: Final[str] = "created_at"
+    UPDATED_AT: Final[str] = "updated_at"
+    STORAGE_ROOT_URI: Final[str] = "storage_root_uri"
+    STORAGE_PROVIDER: Final[str] = "storage_provider"
+    STORAGE_METADATA: Final[str] = "storage_metadata"
+

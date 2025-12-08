@@ -1,9 +1,9 @@
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Header, status
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Errors, Routes
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Errors, Routes, Fields
 from backend.db.database import get_db
-from backend.schemas import SignupRequest, LoginRequest, TokenResponse, MeResponse
+from backend.schemas import SignupRequest, LoginRequest, TokenResponse, UserResponse
 from backend.services.auth_service import AuthService
 from sqlalchemy import select
 from backend.db.models import User
@@ -43,7 +43,7 @@ async def login(payload: LoginRequest = Body(default=None), db: Session = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)
 
 
-@router.get(Routes.AUTH_ME, summary=Summaries.AUTH_ME, response_model=MeResponse)
+@router.get(Routes.AUTH_ME, summary=Summaries.AUTH_ME, response_model=UserResponse)
 async def auth_me(
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
@@ -62,10 +62,15 @@ async def auth_me(
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.UNAUTHORIZED)
         return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role,
+            Fields.ID: user.id,
+            Fields.USERNAME: user.username,
+            Fields.EMAIL: user.email,
+            Fields.ROLE: user.role,
+            Fields.CREATED_AT: user.created_at,
+            Fields.UPDATED_AT: user.updated_at,
+            Fields.STORAGE_ROOT_URI: user.storage_root_uri,
+            Fields.STORAGE_PROVIDER: user.storage_provider,
+            Fields.STORAGE_METADATA: user.storage_metadata,
         }
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)
