@@ -213,7 +213,7 @@ class Errors:
 
 
 class Defaults:
-    STORAGE_PROVIDER: Final[str] = "gcs"
+    pass
 
 class Fields:
     ID: Final[str] = "id"
@@ -223,6 +223,4 @@ class Fields:
     CREATED_AT: Final[str] = "created_at"
     UPDATED_AT: Final[str] = "updated_at"
     STORAGE_ROOT_URI: Final[str] = "storage_root_uri"
-    STORAGE_PROVIDER: Final[str] = "storage_provider"
-    STORAGE_METADATA: Final[str] = "storage_metadata"
 

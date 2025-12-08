@@ -24,8 +24,6 @@ async def signup(payload: SignupRequest = Body(default=None), db: Session = Depe
             password=payload.password,
             role=payload.role.value,
             storage_root_uri=payload.storage_root_uri,
-            storage_provider=payload.storage_provider.value,
-            storage_metadata=payload.storage_metadata,
         )
         return {"access_token": token, "token_type": Messages.TOKEN_TYPE_BEARER}
     except ValueError as e:
@@ -69,8 +67,6 @@ async def auth_me(
             Fields.CREATED_AT: user.created_at,
             Fields.UPDATED_AT: user.updated_at,
             Fields.STORAGE_ROOT_URI: user.storage_root_uri,
-            Fields.STORAGE_PROVIDER: user.storage_provider,
-            Fields.STORAGE_METADATA: user.storage_metadata,
         }
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)

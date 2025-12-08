@@ -19,12 +19,6 @@ class AccessLevel(str, Enum):
     write = "write"
     admin = "admin"
 
-class StorageProvider(str, Enum):
-    gcs = "gcs"
-    s3 = "s3"
-    azure = "azure"
-    local = "local"
-
 
 class Timestamped(BaseModel):
     created_at: datetime

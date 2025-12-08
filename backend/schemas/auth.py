@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import Optional
 from pydantic import BaseModel, EmailStr
-from backend.schemas.common import Role, StorageProvider
+from backend.schemas.common import Role
 
 
 class SignupRequest(BaseModel):
@@ -10,8 +10,6 @@ class SignupRequest(BaseModel):
     password: str
     role: Role
     storage_root_uri: str
-    storage_provider: StorageProvider = StorageProvider.gcs
-    storage_metadata: Optional[dict] = None
 
 
 class LoginRequest(BaseModel):

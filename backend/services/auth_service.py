@@ -104,8 +104,6 @@ class AuthService:
         password: str,
         role: str,
         storage_root_uri: str,
-        storage_provider: str,
-        storage_metadata: Optional[Dict[str, Any]],
     ) -> Tuple[User, str]:
         # Uniqueness checks
         if db.scalar(select(User).where(User.username == username)) is not None:
@@ -119,8 +117,6 @@ class AuthService:
             password_hash=hash_password(password),
             role=role,
             storage_root_uri=storage_root_uri,
-            storage_provider=storage_provider,
-            storage_metadata=storage_metadata,
         )
         db.add(user)
         db.commit()

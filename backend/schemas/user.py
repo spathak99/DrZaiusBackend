@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, EmailStr
-from backend.schemas.common import Role, Timestamped, StorageProvider
+from backend.schemas.common import Role, Timestamped
 
 
 class UserCreate(BaseModel):
@@ -23,7 +23,5 @@ class UserResponse(Timestamped):
     email: EmailStr
     role: Role
     storage_root_uri: str
-    storage_provider: StorageProvider
-    storage_metadata: Optional[dict] = None
 
 

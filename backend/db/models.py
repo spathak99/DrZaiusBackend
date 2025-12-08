@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from backend.schemas.common import InvitationStatus, StorageProvider
+from backend.schemas.common import InvitationStatus
 
 
 class Base(DeclarativeBase):
@@ -23,7 +23,6 @@ FILE_NAME_MAX_LEN = 255
 DOWNLOAD_LINK_MAX_LEN = 255
 INVITATION_STATUS_MAX_LEN = 20
 STORAGE_ROOT_URI_MAX_LEN = 2048
-STORAGE_PROVIDER_MAX_LEN = 20
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
@@ -47,10 +46,6 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(PASSWORD_HASH_MAX_LEN), nullable=False)
     role: Mapped[str] = mapped_column(String(ROLE_MAX_LEN), nullable=False)
     storage_root_uri: Mapped[str] = mapped_column(String(STORAGE_ROOT_URI_MAX_LEN), nullable=False)
-    storage_provider: Mapped[str] = mapped_column(
-        String(STORAGE_PROVIDER_MAX_LEN), nullable=False, default=StorageProvider.gcs.value
-    )
-    storage_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
