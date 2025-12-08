@@ -1,9 +1,10 @@
 from typing import Any, Dict
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, status, Depends
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes
+from backend.routers.deps import get_current_user
 
 
-router = APIRouter(prefix=Prefix.RECIPIENTS, tags=[Tags.RECIPIENTS])
+router = APIRouter(prefix=Prefix.RECIPIENTS, tags=[Tags.RECIPIENTS], dependencies=[Depends(get_current_user)])
 
 
 @router.get(Routes.ROOT, summary=Summaries.RECIPIENTS_LIST)
