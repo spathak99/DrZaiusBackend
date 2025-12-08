@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 from backend.core.constants import Prefix, Tags, Summaries, Routes
 
 
@@ -16,7 +16,7 @@ async def get_user_chat(userId: str, id: str) -> Dict[str, Any]:
     return {"userId": userId, "id": id}
 
 
-@router.delete(Routes.ID, status_code=204, summary=Summaries.DELETE_CHAT)
+@router.delete(Routes.ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.DELETE_CHAT)
 async def delete_user_chat(userId: str, id: str) -> None:
     return
 

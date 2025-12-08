@@ -41,7 +41,7 @@ async def list_caregiver_recipients(caregiverId: str) -> Dict[str, Any]:
     return {"caregiverId": caregiverId, "items": service.list_caregiver_recipients(caregiverId)}
 
 
-@caregiver_recipients_router.get("/" + "{" + "recipientId" + "}", summary=Summaries.CAREGIVER_RECIPIENT_GET)
+@caregiver_recipients_router.get(Routes.RECIPIENT_ID, summary=Summaries.CAREGIVER_RECIPIENT_GET)
 async def get_caregiver_recipient(caregiverId: str, recipientId: str) -> Dict[str, Any]:
     rel = service.get_caregiver_recipient(caregiverId, recipientId)
     if "access_level" not in rel:

@@ -49,6 +49,7 @@ class Routes:
     ROOT: Final[str] = ""
     ID: Final[str] = "/{id}"
     USER_ID: Final[str] = "/{userId}"
+    RECIPIENT_ID: Final[str] = "/{recipientId}"
     CHAT_ID: Final[str] = "/{chatId}"
     MESSAGE_ID: Final[str] = "/{messageId}"
     FILE_ID: Final[str] = "/{fileId}"
