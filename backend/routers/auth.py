@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Header, status
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Errors
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Errors, Routes
 from backend.db.database import get_db
 from backend.schemas import SignupRequest, LoginRequest, TokenResponse, MeResponse
 from backend.services.auth_service import AuthService
@@ -14,7 +14,7 @@ router = APIRouter(prefix=Prefix.AUTH, tags=[Tags.AUTH])
 service = AuthService()
 
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED, summary=Summaries.SIGNUP, response_model=TokenResponse)
+@router.post(Routes.AUTH_SIGNUP, status_code=status.HTTP_201_CREATED, summary=Summaries.SIGNUP, response_model=TokenResponse)
 async def signup(payload: SignupRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         _, token = service.signup(
@@ -34,7 +34,7 @@ async def signup(payload: SignupRequest = Body(default=None), db: Session = Depe
         raise
 
 
-@router.post("/login", summary=Summaries.LOGIN, response_model=TokenResponse)
+@router.post(Routes.AUTH_LOGIN, summary=Summaries.LOGIN, response_model=TokenResponse)
 async def login(payload: LoginRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         _, token = service.login(db, username=payload.username, password=payload.password)
@@ -43,7 +43,7 @@ async def login(payload: LoginRequest = Body(default=None), db: Session = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)
 
 
-@router.get("/me", summary=Summaries.AUTH_ME, response_model=MeResponse)
+@router.get(Routes.AUTH_ME, summary=Summaries.AUTH_ME, response_model=MeResponse)
 async def auth_me(
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
@@ -71,7 +71,7 @@ async def auth_me(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.LOGOUT)
+@router.post(Routes.AUTH_LOGOUT, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.LOGOUT)
 async def logout() -> None:
     return
 

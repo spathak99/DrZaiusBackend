@@ -45,6 +45,31 @@ class Prefix:
     RECIPIENT_CAREGIVERS: Final[str] = "/recipients/{recipientId}/caregivers"
     FILES: Final[str] = "/files"
 
+class Routes:
+    ROOT: Final[str] = ""
+    ID: Final[str] = "/{id}"
+    USER_ID: Final[str] = "/{userId}"
+    CHAT_ID: Final[str] = "/{chatId}"
+    MESSAGE_ID: Final[str] = "/{messageId}"
+    FILE_ID: Final[str] = "/{fileId}"
+    CAREGIVER_ID: Final[str] = "/{caregiverId}"
+    INVITATION_ID: Final[str] = "/{invitationId}"
+    # Auth
+    AUTH_SIGNUP: Final[str] = "/signup"
+    AUTH_LOGIN: Final[str] = "/login"
+    AUTH_ME: Final[str] = "/me"
+    AUTH_LOGOUT: Final[str] = "/logout"
+    # Health
+    HEALTHZ: Final[str] = "/healthz"
+    READYZ: Final[str] = "/readyz"
+    # Common suffixes
+    EMBEDDINGS: Final[str] = "/embeddings"
+    DOWNLOAD: Final[str] = "/download"
+    ACCESS: Final[str] = "/access"
+    # Invitations actions
+    INVITATION_ACCEPT: Final[str] = "/{invitationId}/accept"
+    INVITATION_DECLINE: Final[str] = "/{invitationId}/decline"
+
 
 class Summaries:
     LIST_CHATS: Final[str] = "Get a list of all chats"
