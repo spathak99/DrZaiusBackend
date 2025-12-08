@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from fastapi import APIRouter, Body, Path, status, Depends
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys
 from backend.schemas import ChatCreate, ChatUpdate
 from backend.services import ChatsService
 from backend.background.tasks import enqueue_embedding_job
@@ -13,7 +13,7 @@ service = ChatsService()
 
 @router.get(Routes.ROOT, summary=Summaries.LIST_CHATS)
 async def list_chats() -> Dict[str, Any]:
-    return {"items": service.list_chats()}
+    return {Keys.ITEMS: service.list_chats()}
 
 
 @router.get(Routes.ID, summary=Summaries.GET_CHAT)
@@ -40,11 +40,11 @@ async def delete_chat(id: str) -> None:
 @router.post(Routes.CHAT_ID + Routes.EMBEDDINGS, status_code=status.HTTP_201_CREATED, summary=Summaries.CHAT_EMBEDDINGS_CREATE)
 async def generate_chat_embeddings(chatId: str, payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
     job_id = enqueue_embedding_job("chat", chatId, payload)
-    return {"message": Messages.EMBEDDINGS_JOB_ENQUEUED, "chatId": chatId, "jobId": job_id}
+    return {Keys.MESSAGE: Messages.EMBEDDINGS_JOB_ENQUEUED, Keys.CHAT_ID: chatId, Keys.JOB_ID: job_id}
 
 
 @router.get(Routes.CHAT_ID + Routes.EMBEDDINGS, summary=Summaries.CHAT_EMBEDDINGS_GET)
 async def get_chat_embeddings(chatId: str) -> Dict[str, Any]:
-    return {"chatId": chatId, "embeddings": []}
+    return {Keys.CHAT_ID: chatId, Keys.EMBEDDINGS: []}
 
 

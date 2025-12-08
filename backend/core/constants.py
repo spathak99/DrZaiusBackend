@@ -224,3 +224,20 @@ class Fields:
     CREATED_AT: Final[str] = "created_at"
     UPDATED_AT: Final[str] = "updated_at"
     STORAGE_ROOT_URI: Final[str] = "storage_root_uri"
+    ACCESS_LEVEL: Final[str] = "access_level"
+
+class Keys:
+    MESSAGE: Final[str] = "message"
+    ITEMS: Final[str] = "items"
+    DATA: Final[str] = "data"
+    STATUS: Final[str] = "status"
+    JOB_ID: Final[str] = "jobId"
+    DOWNLOAD: Final[str] = "download"
+    EMBEDDINGS: Final[str] = "embeddings"
+    # Entity Id keys
+    CHAT_ID: Final[str] = "chatId"
+    FILE_ID: Final[str] = "fileId"
+    RECIPIENT_ID: Final[str] = "recipientId"
+    CAREGIVER_ID: Final[str] = "caregiverId"
+    INVITATION_ID: Final[str] = "invitationId"
+    USER_ID: Final[str] = "userId"
