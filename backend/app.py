@@ -1,6 +1,7 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from backend.core.constants import API_TITLE
+from backend.core.constants import API_TITLE, Cors
 from backend.core.settings import get_settings
 from backend.routers import (
     auth,
@@ -21,6 +22,17 @@ from backend.routers import (
 
 
 app = FastAPI(title=API_TITLE)
+
+# CORS
+_settings = get_settings()
+_cors_origins = _settings.cors_origins or Cors.DEFAULT_ORIGINS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=Cors.ALLOW_METHODS_ALL,
+    allow_headers=Cors.ALLOW_HEADERS_ALL,
+)
 
 # Register routers
 app.include_router(chats.router)

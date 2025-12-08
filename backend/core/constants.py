@@ -241,3 +241,9 @@ class Keys:
     CAREGIVER_ID: Final[str] = "caregiverId"
     INVITATION_ID: Final[str] = "invitationId"
     USER_ID: Final[str] = "userId"
+
+
+class Cors:
+    DEFAULT_ORIGINS: Final[list[str]] = ["http://127.0.0.1:3000", "http://localhost:3000"]
+    ALLOW_METHODS_ALL: Final[list[str]] = ["*"]
+    ALLOW_HEADERS_ALL: Final[list[str]] = ["*"]
