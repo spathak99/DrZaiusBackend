@@ -1,11 +1,12 @@
 from typing import Any, Dict
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, status, Depends
 from backend.core.constants import Prefix, Tags, Summaries, Routes
 from backend.schemas import MessageCreate, MessageUpdate
 from backend.services import MessagesService
+from backend.routers.deps import get_current_user
 
 
-router = APIRouter(prefix=Prefix.CHAT_MESSAGES, tags=[Tags.MESSAGES])
+router = APIRouter(prefix=Prefix.CHAT_MESSAGES, tags=[Tags.MESSAGES], dependencies=[Depends(get_current_user)])
 service = MessagesService()
 
 

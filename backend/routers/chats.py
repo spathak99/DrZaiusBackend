@@ -1,12 +1,13 @@
 from typing import Any, Dict
-from fastapi import APIRouter, Body, Path, status
+from fastapi import APIRouter, Body, Path, status, Depends
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes
 from backend.schemas import ChatCreate, ChatUpdate
 from backend.services import ChatsService
 from backend.background.tasks import enqueue_embedding_job
+from backend.routers.deps import get_current_user
 
 
-router = APIRouter(prefix=Prefix.CHATS, tags=[Tags.CHATS])
+router = APIRouter(prefix=Prefix.CHATS, tags=[Tags.CHATS], dependencies=[Depends(get_current_user)])
 service = ChatsService()
 
 

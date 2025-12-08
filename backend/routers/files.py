@@ -1,12 +1,13 @@
 from typing import Any, Dict
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, status, Depends
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes
 from backend.schemas import FileUpload, FileAccessGrant, FileAccessUpdate
 from backend.services import FilesService
 from backend.background.tasks import enqueue_embedding_job
+from backend.routers.deps import get_current_user
 
 
-router = APIRouter(prefix=Prefix.FILES, tags=[Tags.FILES])
+router = APIRouter(prefix=Prefix.FILES, tags=[Tags.FILES], dependencies=[Depends(get_current_user)])
 service = FilesService()
 
 
