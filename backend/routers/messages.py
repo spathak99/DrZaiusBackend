@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from fastapi import APIRouter, Body, status, Depends
-from backend.core.constants import Prefix, Tags, Summaries, Routes
+from backend.core.constants import Prefix, Tags, Summaries, Routes, Keys
 from backend.schemas import MessageCreate, MessageUpdate
 from backend.services import MessagesService
 from backend.routers.deps import get_current_user
@@ -17,7 +17,7 @@ async def create_message(chatId: str, payload: MessageCreate = Body(default=None
 
 @router.get(Routes.ROOT, summary=Summaries.MESSAGE_LIST)
 async def list_messages(chatId: str) -> Dict[str, Any]:
-    return {"chatId": chatId, "items": service.list_messages(chatId)}
+    return {Keys.CHAT_ID: chatId, Keys.ITEMS: service.list_messages(chatId)}
 
 
 @router.get(Routes.MESSAGE_ID, summary=Summaries.MESSAGE_GET)

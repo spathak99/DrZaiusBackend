@@ -1,14 +1,23 @@
 from typing import Any, Dict
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, status, Depends
 from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes
 from backend.services import AccessService
 from backend.schemas import CaregiverAccessUpdate
+from backend.routers.deps import get_current_user
 
 
-recipient_access_router = APIRouter(prefix=Prefix.RECIPIENT_ACCESS, tags=[Tags.ACCESS])
-caregiver_recipients_router = APIRouter(prefix=Prefix.CAREGIVER_RECIPIENTS, tags=[Tags.RELATIONS])
-caregiver_invitations_router = APIRouter(prefix=Prefix.CAREGIVER_INVITATIONS, tags=[Tags.ACCESS])
-recipient_invitations_router = APIRouter(prefix=Prefix.RECIPIENT_INVITATIONS, tags=[Tags.ACCESS])
+recipient_access_router = APIRouter(
+    prefix=Prefix.RECIPIENT_ACCESS, tags=[Tags.ACCESS], dependencies=[Depends(get_current_user)]
+)
+caregiver_recipients_router = APIRouter(
+    prefix=Prefix.CAREGIVER_RECIPIENTS, tags=[Tags.RELATIONS], dependencies=[Depends(get_current_user)]
+)
+caregiver_invitations_router = APIRouter(
+    prefix=Prefix.CAREGIVER_INVITATIONS, tags=[Tags.ACCESS], dependencies=[Depends(get_current_user)]
+)
+recipient_invitations_router = APIRouter(
+    prefix=Prefix.RECIPIENT_INVITATIONS, tags=[Tags.ACCESS], dependencies=[Depends(get_current_user)]
+)
 
 service = AccessService()
 

@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from fastapi import APIRouter, Body, status, Depends
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields
 from backend.schemas import FileUpload, FileAccessGrant, FileAccessUpdate
 from backend.services import FilesService
 from backend.background.tasks import enqueue_embedding_job
@@ -35,17 +35,17 @@ async def generate_file_embeddings(fileId: str, payload: Dict[str, Any] = Body(d
 
 @router.get(Routes.FILE_ID + Routes.EMBEDDINGS, summary=Summaries.FILE_EMBEDDINGS_GET)
 async def get_file_embeddings(fileId: str) -> Dict[str, Any]:
-    return {"fileId": fileId, "embeddings": []}
+    return {Keys.FILE_ID: fileId, Keys.EMBEDDINGS: []}
 
 
 @router.get(Routes.ID + Routes.DOWNLOAD, summary=Summaries.FILE_DOWNLOAD)
 async def download_file(id: str) -> Dict[str, Any]:
-    return {"id": id, "download": "link"}
+    return {Fields.ID: id, Keys.DOWNLOAD: "link"}
 
 
 @router.get(Routes.FILE_ID + Routes.ACCESS, summary=Summaries.FILE_ACCESS_LIST)
 async def list_file_access(fileId: str) -> Dict[str, Any]:
-    return {"fileId": fileId, "items": service.list_access(fileId)}
+    return {Keys.FILE_ID: fileId, Keys.ITEMS: service.list_access(fileId)}
 
 
 @router.post(Routes.FILE_ID + Routes.ACCESS, status_code=status.HTTP_201_CREATED, summary=Summaries.FILE_ACCESS_GRANT)

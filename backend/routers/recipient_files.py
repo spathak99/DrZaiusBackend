@@ -1,9 +1,10 @@
 from typing import Any, Dict
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes
+from backend.routers.deps import get_current_user
 
 
-router = APIRouter(prefix=Prefix.RECIPIENT_FILES, tags=[Tags.RECIPIENT_DATA])
+router = APIRouter(prefix=Prefix.RECIPIENT_FILES, tags=[Tags.RECIPIENT_DATA], dependencies=[Depends(get_current_user)])
 
 
 @router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.FILE_UPLOAD)
