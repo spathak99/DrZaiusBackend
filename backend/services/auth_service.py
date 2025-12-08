@@ -135,4 +135,7 @@ class AuthService:
         token = issue_token(str(user.id))
         return user, token
 
+    def verify_token(self, token: str) -> Dict[str, Any]:
+        return verify_token(token)
+
 
