@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, GroupRoles, Routes
@@ -168,6 +168,33 @@ async def remove_member(id: str, userId: str, current_user: User = Depends(get_c
     if membership:
         db.delete(membership)
         db.commit()
+    return
+
+
+@router.delete(Routes.ID + Routes.ACCESS + Routes.SELF, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_LEAVE)
+async def leave_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    group = db.scalar(select(Group).where(Group.id == id))
+    if group is None:
+        raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
+    membership = db.scalar(
+        select(GroupMembership).where(
+            GroupMembership.group_id == group.id, GroupMembership.user_id == current_user.id
+        )
+    )
+    if membership is None:
+        # Idempotent leave
+        return
+    # If user is admin, ensure at least one other admin remains
+    if membership.role == GroupRoles.ADMIN:
+        admin_count = db.scalar(
+            select(func.count()).select_from(GroupMembership).where(
+                GroupMembership.group_id == group.id, GroupMembership.role == GroupRoles.ADMIN
+            )
+        ) or 0
+        if admin_count <= 1:
+            raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+    db.delete(membership)
+    db.commit()
     return
 
 

@@ -58,6 +58,7 @@ class Routes:
     FILE_ID: Final[str] = "/{fileId}"
     CAREGIVER_ID: Final[str] = "/{caregiverId}"
     INVITATION_ID: Final[str] = "/{invitationId}"
+    SELF: Final[str] = "/self"
     # Auth
     AUTH_SIGNUP: Final[str] = "/signup"
     AUTH_LOGIN: Final[str] = "/login"
@@ -154,6 +155,7 @@ class Summaries:
     GROUP_MEMBER_ADD: Final[str] = "Add user to group (admin only)"
     GROUP_MEMBER_REMOVE: Final[str] = "Remove user from group (admin only)"
     GROUP_UPDATE: Final[str] = "Update group details (admin only)"
+    GROUP_LEAVE: Final[str] = "Leave group"
 
 
 class Messages:
