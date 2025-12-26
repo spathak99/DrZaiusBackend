@@ -247,3 +247,16 @@ class Cors:
     DEFAULT_ORIGINS: Final[list[str]] = ["http://127.0.0.1:3000", "http://localhost:3000"]
     ALLOW_METHODS_ALL: Final[list[str]] = ["*"]
     ALLOW_HEADERS_ALL: Final[list[str]] = ["*"]
+
+
+class DocKeys:
+    DOC_ID: Final[str] = "docId"
+    NAME: Final[str] = "name"
+    MIME_TYPE: Final[str] = "mimeType"
+    SIZE_BYTES: Final[str] = "sizeBytes"
+    CORPUS: Final[str] = "corpus"
+
+
+class MimeTypes:
+    APPLICATION_PDF: Final[str] = "application/pdf"
+    APPLICATION_OCTET_STREAM: Final[str] = "application/octet-stream"
