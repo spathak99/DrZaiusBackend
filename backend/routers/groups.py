@@ -10,6 +10,8 @@ from backend.db.database import get_db
 from backend.db.models import User, Group, GroupMembership
 from backend.routers.deps import get_current_user
 from backend.schemas import GroupCreate, GroupResponse, GroupMemberAdd
+from pydantic import BaseModel
+from typing import Optional
 
 
 router = APIRouter(prefix=Prefix.GROUPS, tags=[Tags.GROUPS], dependencies=[Depends(get_current_user)])
@@ -51,6 +53,40 @@ async def create_group(payload: GroupCreate = Body(default=None), current_user: 
     # creator is admin
     membership = GroupMembership(group_id=group.id, user_id=current_user.id, role=GroupRoles.ADMIN)
     db.add(membership)
+    db.commit()
+    db.refresh(group)
+    return {
+        Fields.ID: group.id,
+        Fields.NAME: group.name,
+        Fields.DESCRIPTION: group.description,
+        Fields.CREATED_BY: group.created_by,
+        Fields.CREATED_AT: group.created_at,
+        Fields.UPDATED_AT: group.updated_at,
+    }
+
+
+class GroupUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+@router.patch(Routes.ID, summary=Summaries.GROUP_UPDATE)
+async def patch_group(
+    id: str,
+    payload: GroupUpdate = Body(default=None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    group = db.scalar(select(Group).where(Group.id == id))
+    if group is None:
+        raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
+    if not _is_admin(db, group.id, current_user.id):
+        raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+    data = payload.model_dump(exclude_none=True)
+    if Fields.NAME in data:
+        group.name = data[Fields.NAME]
+    if Fields.DESCRIPTION in data:
+        group.description = data[Fields.DESCRIPTION]
     db.commit()
     db.refresh(group)
     return {

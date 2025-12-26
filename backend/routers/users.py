@@ -3,10 +3,12 @@ from uuid import UUID
 from fastapi import APIRouter, Body, status, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors
 from backend.schemas import UserCreate, UserUpdate, UserResponse
 from backend.db.database import get_db
 from backend.db.models import User, GroupMembership
+from backend.routers.deps import get_current_user
+from backend.schemas.user import UserSettingsUpdate
 
 
 router = APIRouter(prefix=Prefix.USERS, tags=[Tags.USERS])
@@ -67,5 +69,41 @@ async def update_user(id: str, payload: UserUpdate = Body(default=None)) -> Dict
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.USER_DELETE)
 async def delete_user(id: str) -> None:
     return
+
+
+@router.patch("/{id}", summary=Summaries.USER_UPDATE, response_model=UserResponse)
+async def patch_user(
+    id: str,
+    payload: UserSettingsUpdate = Body(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    try:
+        uuid = UUID(id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="not_found")
+    if current_user.id != uuid:
+        raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+    user = db.scalar(select(User).where(User.id == uuid))
+    if user is None:
+        raise HTTPException(status_code=404, detail="not_found")
+    data = payload.model_dump(exclude_none=True)
+    if "corpus_uri" in data:
+        user.corpus_uri = data["corpus_uri"]
+    if "chat_history_uri" in data:
+        user.chat_history_uri = data["chat_history_uri"]
+    db.commit()
+    db.refresh(user)
+    return {
+        Fields.ID: user.id,
+        Fields.USERNAME: user.username,
+        Fields.EMAIL: user.email,
+        Fields.ROLE: user.role,
+        Fields.CREATED_AT: user.created_at,
+        Fields.UPDATED_AT: user.updated_at,
+        Fields.CORPUS_URI: user.corpus_uri,
+        Fields.CHAT_HISTORY_URI: user.chat_history_uri,
+        Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == user.id)).all()],
+    }
 
 

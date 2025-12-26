@@ -27,3 +27,8 @@ class UserResponse(Timestamped):
     group_ids: List[UUID] = []
 
 
+class UserSettingsUpdate(BaseModel):
+    corpus_uri: Optional[str] = None
+    chat_history_uri: Optional[str] = None
+
+

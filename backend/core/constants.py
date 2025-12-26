@@ -153,6 +153,7 @@ class Summaries:
     GROUP_MEMBERS_LIST: Final[str] = "List members of a group"
     GROUP_MEMBER_ADD: Final[str] = "Add user to group (admin only)"
     GROUP_MEMBER_REMOVE: Final[str] = "Remove user from group (admin only)"
+    GROUP_UPDATE: Final[str] = "Update group details (admin only)"
 
 
 class Messages:
