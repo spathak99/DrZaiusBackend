@@ -223,7 +223,7 @@ class Fields:
     ROLE: Final[str] = "role"
     CREATED_AT: Final[str] = "created_at"
     UPDATED_AT: Final[str] = "updated_at"
-    STORAGE_ROOT_URI: Final[str] = "storage_root_uri"
+    CORPUS_URI: Final[str] = "corpus_uri"
     ACCESS_LEVEL: Final[str] = "access_level"
 
 class Keys:

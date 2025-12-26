@@ -103,7 +103,7 @@ class AuthService:
         email: str,
         password: str,
         role: str,
-        storage_root_uri: str,
+        corpus_uri: str,
     ) -> Tuple[User, str]:
         # Uniqueness checks
         if db.scalar(select(User).where(User.username == username)) is not None:
@@ -116,7 +116,7 @@ class AuthService:
             email=email,
             password_hash=hash_password(password),
             role=role,
-            storage_root_uri=storage_root_uri,
+            corpus_uri=corpus_uri,
         )
         db.add(user)
         db.commit()

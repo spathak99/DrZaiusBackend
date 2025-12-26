@@ -23,7 +23,7 @@ async def list_users(db: Session = Depends(get_db)) -> Dict[str, Any]:
             Fields.ROLE: u.role,
             Fields.CREATED_AT: u.created_at,
             Fields.UPDATED_AT: u.updated_at,
-            Fields.STORAGE_ROOT_URI: u.storage_root_uri,
+            Fields.CORPUS_URI: u.corpus_uri,
         }
         for u in users
     ]
@@ -51,7 +51,7 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
         Fields.ROLE: user.role,
         Fields.CREATED_AT: user.created_at,
         Fields.UPDATED_AT: user.updated_at,
-        Fields.STORAGE_ROOT_URI: user.storage_root_uri,
+        Fields.CORPUS_URI: user.corpus_uri,
     }
 
 

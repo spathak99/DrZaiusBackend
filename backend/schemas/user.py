@@ -22,6 +22,6 @@ class UserResponse(Timestamped):
     username: str
     email: EmailStr
     role: Role
-    storage_root_uri: str
+    corpus_uri: str
 
 

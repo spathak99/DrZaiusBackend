@@ -9,7 +9,7 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     role: Role
-    storage_root_uri: str
+    corpus_uri: str
 
 
 class LoginRequest(BaseModel):
