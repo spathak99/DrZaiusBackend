@@ -1,6 +1,9 @@
 from typing import Any, Dict
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 from backend.core.constants import Tags, Summaries, Messages, Routes, Keys
+from backend.db.database import get_db
 
 
 router = APIRouter(tags=[Tags.OPS])
@@ -12,7 +15,11 @@ async def healthz() -> Dict[str, Any]:
 
 
 @router.get(Routes.READYZ, summary=Summaries.READYZ)
-async def readyz() -> Dict[str, Any]:
-    return {Keys.STATUS: Messages.READY}
+async def readyz(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    try:
+        db.execute(text("SELECT 1"))
+        return {Keys.STATUS: Messages.READY}
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable")
 
 

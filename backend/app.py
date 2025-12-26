@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from backend.core.constants import API_TITLE, Cors
 from backend.core.settings import get_settings
@@ -64,6 +65,21 @@ def maybe_create_tables() -> None:
 
         Base.metadata.create_all(bind=engine)
 
+
+# OpenAPI: add global bearer auth
+def _custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(title=API_TITLE, version="1.0.0", routes=app.routes)
+    components = openapi_schema.setdefault("components", {})
+    security_schemes = components.setdefault("securitySchemes", {})
+    security_schemes["bearerAuth"] = {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+    openapi_schema["security"] = [{"bearerAuth": []}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = _custom_openapi
 
 if __name__ == "__main__":
     import uvicorn

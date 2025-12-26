@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors
@@ -14,12 +14,14 @@ docs = DocsService()
 
 
 @router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.FILE_UPLOAD)
-async def upload_recipient_file(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def upload_recipient_file(id: str, file: UploadFile = File(...), db: Session = Depends(get_db)) -> Dict[str, Any]:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
         raise HTTPException(status_code=404, detail=Errors.RECIPIENT_NOT_FOUND)
-    # Mocked upload; in reality accept file upload. Here we fake a document name.
-    created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=f"recipient-{id}-doc.pdf", content_type="application/pdf")
+    content = await file.read()
+    created = docs.upload_doc(
+        corpus_uri=user.corpus_uri, file_name=file.filename, content_type=file.content_type, content=content
+    )
     return {Keys.MESSAGE: Messages.FILE_UPLOADED, Keys.RECIPIENT_ID: id, Keys.DATA: created}
 
 

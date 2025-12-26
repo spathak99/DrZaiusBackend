@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from backend.core.constants import Keys, Messages, DocKeys, MimeTypes
+from backend.clients import VertexRagClient
 
 
 class DocsService:
@@ -12,43 +13,30 @@ class DocsService:
     This implementation returns mocked results for development.
     """
 
+    def __init__(self, client: Optional[VertexRagClient] = None) -> None:
+        # Allow injection for testing; default to client stub
+        self.client = client or VertexRagClient()
+
     def list_docs(self, *, corpus_uri: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
-        # Return a stable mock list for given corpus_uri
-        base = str(uuid4())[:8]
-        docs = [
-            {
-                DocKeys.DOC_ID: f"{base}-000{i}",
-                DocKeys.NAME: f"sample-{i}.pdf",
-                DocKeys.MIME_TYPE: MimeTypes.APPLICATION_PDF,
-                DocKeys.SIZE_BYTES: 10_000 + i,
-                DocKeys.CORPUS: corpus_uri,
-            }
-            for i in range(3)
-        ]
-        return docs[offset : offset + limit]
+        docs = self.client.list_documents(corpus_uri=corpus_uri, limit=limit, offset=offset)
+        return docs
 
     def get_doc(self, *, corpus_uri: str, doc_id: str) -> Dict[str, Any]:
-        return {
-            DocKeys.DOC_ID: doc_id,
-            DocKeys.NAME: f"{doc_id}.pdf",
-            DocKeys.MIME_TYPE: MimeTypes.APPLICATION_PDF,
-            DocKeys.SIZE_BYTES: 12_345,
-            DocKeys.CORPUS: corpus_uri,
-        }
+        return self.client.get_document(corpus_uri=corpus_uri, doc_id=doc_id)
 
-    def upload_doc(self, *, corpus_uri: str, file_name: str, content_type: Optional[str] = None) -> Dict[str, Any]:
-        # In a real implementation, stream to corpus storage and return created metadata
-        created_id = str(uuid4())
-        return {
-            Keys.MESSAGE: Messages.FILE_UPLOADED,
-            DocKeys.DOC_ID: created_id,
-            DocKeys.NAME: file_name,
-            DocKeys.MIME_TYPE: content_type or MimeTypes.APPLICATION_OCTET_STREAM,
-            DocKeys.CORPUS: corpus_uri,
-        }
+    def upload_doc(
+        self, *, corpus_uri: str, file_name: str, content_type: Optional[str] = None, content: bytes = b""
+    ) -> Dict[str, Any]:
+        created = self.client.add_document(
+            corpus_uri=corpus_uri, file_name=file_name, content=content, mime_type=content_type
+        )
+        # normalize response
+        created[DocKeys.CORPUS] = corpus_uri
+        created[Keys.MESSAGE] = Messages.FILE_UPLOADED
+        return created
 
     def delete_doc(self, *, corpus_uri: str, doc_id: str) -> None:
-        # No-op stub
+        self.client.delete_document(corpus_uri=corpus_uri, doc_id=doc_id)
         return
 
 
