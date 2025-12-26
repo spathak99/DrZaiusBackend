@@ -24,6 +24,7 @@ async def signup(payload: SignupRequest = Body(default=None), db: Session = Depe
             password=payload.password,
             role=payload.role.value,
             corpus_uri=payload.corpus_uri,
+            chat_history_uri=payload.chat_history_uri,
         )
         return {"access_token": token, "token_type": Messages.TOKEN_TYPE_BEARER}
     except ValueError as e:
@@ -67,6 +68,7 @@ async def auth_me(
             Fields.CREATED_AT: user.created_at,
             Fields.UPDATED_AT: user.updated_at,
             Fields.CORPUS_URI: user.corpus_uri,
+            Fields.CHAT_HISTORY_URI: user.chat_history_uri,
         }
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)

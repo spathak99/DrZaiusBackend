@@ -23,6 +23,7 @@ FILE_NAME_MAX_LEN = 255
 DOWNLOAD_LINK_MAX_LEN = 255
 INVITATION_STATUS_MAX_LEN = 20
 CORPUS_URI_MAX_LEN = 2048
+CHAT_HISTORY_URI_MAX_LEN = 2048
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
@@ -46,6 +47,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(PASSWORD_HASH_MAX_LEN), nullable=False)
     role: Mapped[str] = mapped_column(String(ROLE_MAX_LEN), nullable=False)
     corpus_uri: Mapped[str] = mapped_column(String(CORPUS_URI_MAX_LEN), nullable=False)
+    chat_history_uri: Mapped[str] = mapped_column(String(CHAT_HISTORY_URI_MAX_LEN), nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 

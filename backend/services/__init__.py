@@ -4,6 +4,7 @@ from backend.services.files_service import FilesService
 from backend.services.access_service import AccessService
 from backend.services.security_service import SecurityService
 from backend.services.docs_service import DocsService
+from backend.services.chat_history_service import ChatHistoryService
 
 __all__ = [
     "ChatsService",
@@ -12,6 +13,7 @@ __all__ = [
     "AccessService",
     "SecurityService",
     "DocsService",
+    "ChatHistoryService",
 ]
 
 

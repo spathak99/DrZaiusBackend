@@ -23,5 +23,6 @@ class UserResponse(Timestamped):
     email: EmailStr
     role: Role
     corpus_uri: str
+    chat_history_uri: Optional[str] = None
 
 

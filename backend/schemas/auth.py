@@ -10,6 +10,7 @@ class SignupRequest(BaseModel):
     password: str
     role: Role
     corpus_uri: str
+    chat_history_uri: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

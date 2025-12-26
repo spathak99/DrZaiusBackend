@@ -2,7 +2,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors
 from backend.db.database import get_db
 from backend.db.models import User
 from backend.services import DocsService
@@ -17,7 +17,7 @@ docs = DocsService()
 async def upload_recipient_file(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
-        raise HTTPException(status_code=404, detail="recipient_not_found")
+        raise HTTPException(status_code=404, detail=Errors.RECIPIENT_NOT_FOUND)
     # Mocked upload; in reality accept file upload. Here we fake a document name.
     created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=f"recipient-{id}-doc.pdf", content_type="application/pdf")
     return {Keys.MESSAGE: Messages.FILE_UPLOADED, Keys.RECIPIENT_ID: id, Keys.DATA: created}
@@ -27,7 +27,7 @@ async def upload_recipient_file(id: str, db: Session = Depends(get_db)) -> Dict[
 async def list_recipient_files(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
-        raise HTTPException(status_code=404, detail="recipient_not_found")
+        raise HTTPException(status_code=404, detail=Errors.RECIPIENT_NOT_FOUND)
     items = docs.list_docs(corpus_uri=user.corpus_uri)
     return {Keys.RECIPIENT_ID: id, Keys.ITEMS: items}
 
@@ -36,7 +36,7 @@ async def list_recipient_files(id: str, db: Session = Depends(get_db)) -> Dict[s
 async def get_recipient_file(id: str, fileId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
-        raise HTTPException(status_code=404, detail="recipient_not_found")
+        raise HTTPException(status_code=404, detail=Errors.RECIPIENT_NOT_FOUND)
     doc = docs.get_doc(corpus_uri=user.corpus_uri, doc_id=fileId)
     return {Keys.RECIPIENT_ID: id, Keys.FILE_ID: fileId, Keys.DATA: doc}
 

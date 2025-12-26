@@ -211,6 +211,8 @@ class Errors:
     INVALID_CREDENTIALS: Final[str] = "invalid_credentials"
     UNAUTHORIZED: Final[str] = "unauthorized"
     MALFORMED_TOKEN: Final[str] = "malformed_token"
+    RECIPIENT_NOT_FOUND: Final[str] = "recipient_not_found"
+    CHAT_HISTORY_URI_NOT_SET: Final[str] = "chat_history_uri_not_set"
 
 
 class Defaults:
@@ -224,6 +226,7 @@ class Fields:
     CREATED_AT: Final[str] = "created_at"
     UPDATED_AT: Final[str] = "updated_at"
     CORPUS_URI: Final[str] = "corpus_uri"
+    CHAT_HISTORY_URI: Final[str] = "chat_history_uri"
     ACCESS_LEVEL: Final[str] = "access_level"
 
 class Keys:
@@ -260,3 +263,20 @@ class DocKeys:
 class MimeTypes:
     APPLICATION_PDF: Final[str] = "application/pdf"
     APPLICATION_OCTET_STREAM: Final[str] = "application/octet-stream"
+
+
+class ChatKeys:
+    MESSAGE_ID: Final[str] = "messageId"
+    CHAT_ID: Final[str] = "chatId"
+    ROLE: Final[str] = "role"
+    CONTENT: Final[str] = "content"
+    TIMESTAMP: Final[str] = "timestamp"
+    PROVIDER: Final[str] = "provider"
+    EXTERNAL_THREAD_ID: Final[str] = "externalThreadId"
+    EXTERNAL_MESSAGE_ID: Final[str] = "externalMessageId"
+
+
+class ChatRoles:
+    USER: Final[str] = "user"
+    ASSISTANT: Final[str] = "assistant"
+    SYSTEM: Final[str] = "system"
