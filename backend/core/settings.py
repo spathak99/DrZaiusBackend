@@ -3,6 +3,7 @@ from typing import List
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
+from backend.core.constants import Gcp, VertexEndpoints
 
 
 class Settings(BaseSettings):
@@ -23,6 +24,25 @@ class Settings(BaseSettings):
         description="If true, create tables automatically on startup (dev only)",
     )
     cors_origins: List[str] = Field(default_factory=list)
+    # GCP / Vertex settings
+    gcp_project_id: str = Field(default="", description="GCP project id")
+    gcp_location: str = Field(default=Gcp.DEFAULT_LOCATION, description="GCP region/location for Vertex AI")
+    gcp_credentials_file: str = Field(
+        default="",
+        description="Optional path to a service account JSON file; leave empty to use ADC",
+    )
+    vertex_rag_api_endpoint: str = Field(
+        default=VertexEndpoints.AIPLATFORM_ENDPOINT_TEMPLATE,
+        description="Vertex AI RAG API endpoint (format with {location})",
+    )
+    vertex_agent_api_endpoint: str = Field(
+        default=VertexEndpoints.AIPLATFORM_ENDPOINT_TEMPLATE,
+        description="Vertex AI Agent API endpoint (format with {location})",
+    )
+    vertex_default_agent_id: str = Field(
+        default="",
+        description="Optional default Agent resource id to use for chat",
+    )
 
     class Config:
         env_file = ".env"

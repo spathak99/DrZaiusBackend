@@ -251,6 +251,12 @@ class Cors:
     ALLOW_METHODS_ALL: Final[list[str]] = ["*"]
     ALLOW_HEADERS_ALL: Final[list[str]] = ["*"]
 
+class Gcp:
+    DEFAULT_LOCATION: Final[str] = "us-central1"
+
+class VertexEndpoints:
+    AIPLATFORM_ENDPOINT_TEMPLATE: Final[str] = "https://{location}-aiplatform.googleapis.com"
+
 
 class DocKeys:
     DOC_ID: Final[str] = "docId"
