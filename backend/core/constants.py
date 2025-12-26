@@ -23,6 +23,7 @@ class Tags:
     COMPLIANCE: Final[str] = "Compliance"
     OPS: Final[str] = "Ops"
     FILES: Final[str] = "Files"
+    GROUPS: Final[str] = "Groups"
 
 
 class Prefix:
@@ -44,6 +45,8 @@ class Prefix:
     COMPLIANCE: Final[str] = "/compliance"
     RECIPIENT_CAREGIVERS: Final[str] = "/recipients/{recipientId}/caregivers"
     FILES: Final[str] = "/files"
+    GROUPS: Final[str] = "/groups"
+    GROUP_MEMBERS: Final[str] = "/groups/{groupId}/members"
 
 class Routes:
     ROOT: Final[str] = ""
@@ -144,6 +147,12 @@ class Summaries:
     INCIDENT_GET: Final[str] = "Get details of a reported incident"
     HEALTHZ: Final[str] = "Liveness probe"
     READYZ: Final[str] = "Readiness probe"
+    GROUPS_LIST: Final[str] = "List groups for current user"
+    GROUP_CREATE: Final[str] = "Create a new group"
+    GROUP_GET: Final[str] = "Get a specific group"
+    GROUP_MEMBERS_LIST: Final[str] = "List members of a group"
+    GROUP_MEMBER_ADD: Final[str] = "Add user to group (admin only)"
+    GROUP_MEMBER_REMOVE: Final[str] = "Remove user from group (admin only)"
 
 
 class Messages:
@@ -213,6 +222,10 @@ class Errors:
     MALFORMED_TOKEN: Final[str] = "malformed_token"
     RECIPIENT_NOT_FOUND: Final[str] = "recipient_not_found"
     CHAT_HISTORY_URI_NOT_SET: Final[str] = "chat_history_uri_not_set"
+    GROUP_NOT_FOUND: Final[str] = "group_not_found"
+    FORBIDDEN: Final[str] = "forbidden"
+    USER_NOT_FOUND: Final[str] = "user_not_found"
+    DB_UNAVAILABLE: Final[str] = "db_unavailable"
 
 
 class Defaults:
@@ -228,6 +241,9 @@ class Fields:
     CORPUS_URI: Final[str] = "corpus_uri"
     CHAT_HISTORY_URI: Final[str] = "chat_history_uri"
     ACCESS_LEVEL: Final[str] = "access_level"
+    NAME: Final[str] = "name"
+    DESCRIPTION: Final[str] = "description"
+    CREATED_BY: Final[str] = "created_by"
 
 class Keys:
     MESSAGE: Final[str] = "message"
@@ -244,6 +260,7 @@ class Keys:
     CAREGIVER_ID: Final[str] = "caregiverId"
     INVITATION_ID: Final[str] = "invitationId"
     USER_ID: Final[str] = "userId"
+    GROUP_ID: Final[str] = "groupId"
 
 
 class Cors:
@@ -286,3 +303,8 @@ class ChatRoles:
     USER: Final[str] = "user"
     ASSISTANT: Final[str] = "assistant"
     SYSTEM: Final[str] = "system"
+
+
+class GroupRoles:
+    ADMIN: Final[str] = "admin"
+    MEMBER: Final[str] = "member"

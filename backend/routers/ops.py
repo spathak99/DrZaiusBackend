@@ -2,7 +2,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from backend.core.constants import Tags, Summaries, Messages, Routes, Keys
+from backend.core.constants import Tags, Summaries, Messages, Routes, Keys, Errors
 from backend.db.database import get_db
 
 
@@ -20,6 +20,6 @@ async def readyz(db: Session = Depends(get_db)) -> Dict[str, Any]:
         db.execute(text("SELECT 1"))
         return {Keys.STATUS: Messages.READY}
     except Exception:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=Errors.DB_UNAVAILABLE)
 
 

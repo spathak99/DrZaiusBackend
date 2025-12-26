@@ -13,6 +13,7 @@ from backend.routers import (
     security,
     compliance,
     ops,
+    groups,
 )
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "security",
     "compliance",
     "ops",
+    "groups",
 ]
 
 

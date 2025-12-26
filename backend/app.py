@@ -19,6 +19,7 @@ from backend.routers import (
     security,
     compliance,
     ops,
+    groups,
 )
 
 
@@ -54,6 +55,7 @@ app.include_router(security.keys_router)
 app.include_router(security.policies_router)
 app.include_router(compliance.router)
 app.include_router(ops.router)
+app.include_router(groups.router)
 
 
 @app.on_event("startup")

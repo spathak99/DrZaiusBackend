@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from backend.schemas.common import InvitationStatus
@@ -24,6 +24,8 @@ DOWNLOAD_LINK_MAX_LEN = 255
 INVITATION_STATUS_MAX_LEN = 20
 CORPUS_URI_MAX_LEN = 2048
 CHAT_HISTORY_URI_MAX_LEN = 2048
+GROUP_NAME_MAX_LEN = 255
+GROUP_DESC_MAX_LEN = 1024
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
@@ -52,6 +54,9 @@ class User(Base):
     updated_at: Mapped[datetime] = ts_updated()
 
     chats_created: Mapped[List["Chat"]] = relationship(back_populates="creator", cascade="all, delete-orphan")
+    groups_memberships: Mapped[List["GroupMembership"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class RecipientCaregiverAccess(Base):
@@ -138,4 +143,32 @@ class FileAccess(Base):
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    name: Mapped[str] = mapped_column(String(GROUP_NAME_MAX_LEN), index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(GROUP_DESC_MAX_LEN), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = ts_created()
+    updated_at: Mapped[datetime] = ts_updated()
+
+    owner: Mapped[User] = relationship()
+    members: Mapped[List["GroupMembership"]] = relationship(back_populates="group", cascade="all, delete-orphan")
+
+
+class GroupMembership(Base):
+    __tablename__ = "group_memberships"
+
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_membership_group_user"),)
+    id: Mapped[uuid.UUID] = uuid_pk()
+    group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    role: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    created_at: Mapped[datetime] = ts_created()
+    updated_at: Mapped[datetime] = ts_updated()
+
+    group: Mapped[Group] = relationship(back_populates="members")
+    user: Mapped[User] = relationship(back_populates="groups_memberships")
 

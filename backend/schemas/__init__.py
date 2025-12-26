@@ -27,6 +27,12 @@ from backend.schemas.compliance import (
     IncidentCreate,
     IncidentResponse,
 )
+from backend.schemas.group import (
+    GroupCreate,
+    GroupResponse,
+    GroupMemberAdd,
+    GroupMemberResponse,
+)
 
 __all__ = [
     "Role",
@@ -68,6 +74,10 @@ __all__ = [
     "RiskAssessmentResponse",
     "IncidentCreate",
     "IncidentResponse",
+    "GroupCreate",
+    "GroupResponse",
+    "GroupMemberAdd",
+    "GroupMemberResponse",
 ]
 
 
