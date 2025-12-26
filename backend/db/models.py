@@ -57,6 +57,14 @@ class User(Base):
     groups_memberships: Mapped[List["GroupMembership"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    # Optional read-only convenience to directly access groups
+    groups: Mapped[List["Group"]] = relationship(
+        "Group",
+        secondary="group_memberships",
+        primaryjoin="User.id==GroupMembership.user_id",
+        secondaryjoin="Group.id==GroupMembership.group_id",
+        viewonly=True,
+    )
 
 
 class RecipientCaregiverAccess(Base):

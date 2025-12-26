@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields
 from backend.schemas import UserCreate, UserUpdate, UserResponse
 from backend.db.database import get_db
-from backend.db.models import User
+from backend.db.models import User, GroupMembership
 
 
 router = APIRouter(prefix=Prefix.USERS, tags=[Tags.USERS])
@@ -25,6 +25,7 @@ async def list_users(db: Session = Depends(get_db)) -> Dict[str, Any]:
             Fields.UPDATED_AT: u.updated_at,
             Fields.CORPUS_URI: u.corpus_uri,
             Fields.CHAT_HISTORY_URI: u.chat_history_uri,
+            Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == u.id)).all()],
         }
         for u in users
     ]
@@ -54,6 +55,7 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
         Fields.UPDATED_AT: user.updated_at,
         Fields.CORPUS_URI: user.corpus_uri,
         Fields.CHAT_HISTORY_URI: user.chat_history_uri,
+        Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == user.id)).all()],
     }
 
 

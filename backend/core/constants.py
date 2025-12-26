@@ -244,6 +244,7 @@ class Fields:
     NAME: Final[str] = "name"
     DESCRIPTION: Final[str] = "description"
     CREATED_BY: Final[str] = "created_by"
+    GROUP_IDS: Final[str] = "group_ids"
 
 class Keys:
     MESSAGE: Final[str] = "message"

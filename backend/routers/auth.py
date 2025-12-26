@@ -6,7 +6,7 @@ from backend.db.database import get_db
 from backend.schemas import SignupRequest, LoginRequest, TokenResponse, UserResponse
 from backend.services.auth_service import AuthService
 from sqlalchemy import select
-from backend.db.models import User
+from backend.db.models import User, GroupMembership
 from backend.core.constants import Auth as AuthConst
 
 
@@ -69,6 +69,7 @@ async def auth_me(
             Fields.UPDATED_AT: user.updated_at,
             Fields.CORPUS_URI: user.corpus_uri,
             Fields.CHAT_HISTORY_URI: user.chat_history_uri,
+            Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == user.id)).all()],
         }
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)

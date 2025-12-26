@@ -7,15 +7,15 @@ from backend.core.settings import get_settings
 from backend.routers import (
     auth,
     users,
-    chats,
-    user_chats,
+    # chats,
+    # user_chats,
     messages,
-    participants,
+    # participants,
     recipients,
     caregivers,
     recipient_files,
     access,
-    files,
+    # files,
     security,
     compliance,
     ops,
@@ -37,10 +37,10 @@ app.add_middleware(
 )
 
 # Register routers
-app.include_router(chats.router)
-app.include_router(user_chats.router)
+# app.include_router(chats.router)
+# app.include_router(user_chats.router)
 app.include_router(messages.router)
-app.include_router(participants.router)
+# app.include_router(participants.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(recipients.router)
@@ -50,7 +50,7 @@ app.include_router(access.recipient_access_router)
 app.include_router(access.caregiver_recipients_router)
 app.include_router(access.caregiver_invitations_router)
 app.include_router(access.recipient_invitations_router)
-app.include_router(files.router)
+# app.include_router(files.router)
 app.include_router(security.keys_router)
 app.include_router(security.policies_router)
 app.include_router(compliance.router)

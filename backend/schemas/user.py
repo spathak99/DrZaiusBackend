@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel, EmailStr
 from backend.schemas.common import Role, Timestamped
@@ -24,5 +24,6 @@ class UserResponse(Timestamped):
     role: Role
     corpus_uri: str
     chat_history_uri: Optional[str] = None
+    group_ids: List[UUID] = []
 
 
