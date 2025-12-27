@@ -31,6 +31,11 @@ async def list_users(
             Fields.USERNAME: u.username,
             Fields.EMAIL: u.email,
             Fields.ROLE: u.role,
+            Fields.FULL_NAME: u.full_name,
+            Fields.PHONE_NUMBER: u.phone_number,
+            Fields.AGE: u.age,
+            Fields.COUNTRY: u.country,
+            Fields.AVATAR_URI: u.avatar_uri,
             Fields.CREATED_AT: u.created_at,
             Fields.UPDATED_AT: u.updated_at,
             Fields.CORPUS_URI: u.corpus_uri,
@@ -66,6 +71,11 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
         Fields.USERNAME: user.username,
         Fields.EMAIL: user.email,
         Fields.ROLE: user.role,
+        Fields.FULL_NAME: user.full_name,
+        Fields.PHONE_NUMBER: user.phone_number,
+        Fields.AGE: user.age,
+        Fields.COUNTRY: user.country,
+        Fields.AVATAR_URI: user.avatar_uri,
         Fields.CREATED_AT: user.created_at,
         Fields.UPDATED_AT: user.updated_at,
         Fields.CORPUS_URI: user.corpus_uri,
@@ -105,6 +115,16 @@ async def patch_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
     data = payload.model_dump(exclude_none=True)
+    if Fields.FULL_NAME in data:
+        user.full_name = data[Fields.FULL_NAME]
+    if Fields.PHONE_NUMBER in data:
+        user.phone_number = data[Fields.PHONE_NUMBER]
+    if Fields.AGE in data:
+        user.age = data[Fields.AGE]
+    if Fields.COUNTRY in data:
+        user.country = data[Fields.COUNTRY]
+    if Fields.AVATAR_URI in data:
+        user.avatar_uri = data[Fields.AVATAR_URI]
     if Fields.CORPUS_URI in data:
         user.corpus_uri = data[Fields.CORPUS_URI]
     if Fields.CHAT_HISTORY_URI in data:
@@ -124,6 +144,11 @@ async def patch_user(
         Fields.USERNAME: user.username,
         Fields.EMAIL: user.email,
         Fields.ROLE: user.role,
+        Fields.FULL_NAME: user.full_name,
+        Fields.PHONE_NUMBER: user.phone_number,
+        Fields.AGE: user.age,
+        Fields.COUNTRY: user.country,
+        Fields.AVATAR_URI: user.avatar_uri,
         Fields.CREATED_AT: user.created_at,
         Fields.UPDATED_AT: user.updated_at,
         Fields.CORPUS_URI: user.corpus_uri,

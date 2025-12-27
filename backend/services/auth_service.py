@@ -103,6 +103,11 @@ class AuthService:
         email: str,
         password: str,
         role: str,
+        full_name: Optional[str],
+        phone_number: Optional[str],
+        age: Optional[int],
+        country: Optional[str],
+        avatar_uri: Optional[str],
         corpus_uri: str,
         chat_history_uri: Optional[str],
         account_type: Optional[str] = None,
@@ -122,6 +127,11 @@ class AuthService:
             email=email,
             password_hash=hash_password(password),
             role=role,
+            full_name=full_name,
+            phone_number=phone_number,
+            age=age,
+            country=country,
+            avatar_uri=avatar_uri,
             corpus_uri=corpus_uri,
             chat_history_uri=chat_history_uri,
             account_type=account_type,
@@ -145,5 +155,21 @@ class AuthService:
 
     def verify_token(self, token: str) -> Dict[str, Any]:
         return verify_token(token)
+
+    def change_password(
+        self,
+        db: Session,
+        *,
+        user: User,
+        current_password: str,
+        new_password: str,
+    ) -> None:
+        from backend.core.constants import Errors as Err
+
+        if not verify_password(current_password, user.password_hash):
+            raise ValueError(Err.INCORRECT_PASSWORD)
+        user.password_hash = hash_password(new_password)
+        db.commit()
+        db.refresh(user)
 
 

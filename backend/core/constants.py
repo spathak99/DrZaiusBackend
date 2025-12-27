@@ -67,6 +67,7 @@ class Routes:
     AUTH_LOGIN: Final[str] = "/login"
     AUTH_ME: Final[str] = "/me"
     AUTH_LOGOUT: Final[str] = "/logout"
+    AUTH_CHANGE_PASSWORD: Final[str] = "/change-password"
     # Health
     HEALTHZ: Final[str] = "/healthz"
     READYZ: Final[str] = "/readyz"
@@ -98,6 +99,7 @@ class Summaries:
     SIGNUP: Final[str] = "Create a new user account"
     LOGIN: Final[str] = "Log in and receive authentication token"
     LOGOUT: Final[str] = "Log out and invalidate token"
+    CHANGE_PASSWORD: Final[str] = "Change current user's password"
     AUTH_ME: Final[str] = "Get current user"
     USERS_LIST: Final[str] = "Get a list of users"
     USER_CREATE: Final[str] = "Create a user (admin)"
@@ -236,6 +238,7 @@ class Errors:
     CORPUS_URI_NOT_SET: Final[str] = "corpus_uri_not_set"
     DB_UNAVAILABLE: Final[str] = "db_unavailable"
     MISSING_INGESTION_CONFIG: Final[str] = "missing_ingestion_config"
+    INCORRECT_PASSWORD: Final[str] = "incorrect_password"
 
 
 class Defaults:

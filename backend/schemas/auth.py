@@ -1,6 +1,7 @@
 from uuid import UUID
 from typing import Optional
 from pydantic import BaseModel, EmailStr
+from backend.core.constants import Messages
 from backend.schemas.common import Role, AccountType
 
 
@@ -29,9 +30,14 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = Messages.TOKEN_TYPE_BEARER
 
 
 class MeResponse(BaseModel):

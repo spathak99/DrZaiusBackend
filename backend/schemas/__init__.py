@@ -19,7 +19,7 @@ from backend.schemas.security import (
     SecurityPolicyResponse,
     KeyPairResponse,
 )
-from backend.schemas.auth import SignupRequest, LoginRequest, TokenResponse, MeResponse
+from backend.schemas.auth import SignupRequest, LoginRequest, ChangePasswordRequest, TokenResponse, MeResponse
 from backend.schemas.compliance import (
     HipaaReportResponse,
     RiskAssessmentCreate,
@@ -67,6 +67,7 @@ __all__ = [
     "KeyPairResponse",
     "SignupRequest",
     "LoginRequest",
+    "ChangePasswordRequest",
     "TokenResponse",
     "MeResponse",
     "HipaaReportResponse",
