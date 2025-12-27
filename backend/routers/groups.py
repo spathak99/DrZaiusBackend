@@ -25,6 +25,12 @@ def _is_admin(db: Session, group_id: UUID, user_id: UUID) -> bool:
     )
     return bool(membership and membership.role == GroupRoles.ADMIN)
 
+def _get_existing_admin(db: Session, group_id: UUID) -> GroupMembership | None:
+    return db.scalar(
+        select(GroupMembership).where(
+            GroupMembership.group_id == group_id, GroupMembership.role == GroupRoles.ADMIN
+        )
+    )
 
 @router.get(Routes.ROOT, summary=Summaries.GROUPS_LIST)
 async def list_my_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
@@ -79,9 +85,9 @@ async def patch_group(
 ) -> Dict[str, Any]:
     group = db.scalar(select(Group).where(Group.id == id))
     if group is None:
-        raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.GROUP_NOT_FOUND)
     if not _is_admin(db, group.id, current_user.id):
-        raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
     data = payload.model_dump(exclude_none=True)
     if Fields.NAME in data:
         group.name = data[Fields.NAME]
@@ -106,7 +112,7 @@ async def get_group(id: str, current_user: User = Depends(get_current_user), db:
     except Exception:
         group = None
     if group is None:
-        raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.GROUP_NOT_FOUND)
     return {
         Fields.ID: group.id,
         Fields.NAME: group.name,
@@ -151,23 +157,34 @@ async def list_members(
 async def add_member(id: str, payload: GroupMemberAdd = Body(default=None), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
     group = db.scalar(select(Group).where(Group.id == id))
     if group is None:
-        raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.GROUP_NOT_FOUND)
     if not _is_admin(db, group.id, current_user.id):
-        raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
     user = db.scalar(select(User).where(User.id == payload.user_id))
     if user is None:
-        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
     # upsert-like: check if exists
     existing = db.scalar(
         select(GroupMembership).where(
             GroupMembership.group_id == group.id, GroupMembership.user_id == payload.user_id
         )
     )
+    desired_role = payload.role or GroupRoles.MEMBER
+    if desired_role == GroupRoles.ADMIN:
+        current_admin = _get_existing_admin(db, group.id)
+        if current_admin and current_admin.user_id != payload.user_id:
+            # only one admin allowed
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Errors.GROUP_ADMIN_EXISTS)
     if existing is None:
-        membership = GroupMembership(group_id=group.id, user_id=payload.user_id, role=payload.role or GroupRoles.MEMBER)
+        membership = GroupMembership(group_id=group.id, user_id=payload.user_id, role=desired_role)
         db.add(membership)
     else:
-        existing.role = payload.role or existing.role or GroupRoles.MEMBER
+        # Prevent creating multiple admins
+        if desired_role == GroupRoles.ADMIN:
+            current_admin = _get_existing_admin(db, group.id)
+            if current_admin and current_admin.user_id != payload.user_id:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Errors.GROUP_ADMIN_EXISTS)
+        existing.role = desired_role or existing.role or GroupRoles.MEMBER
     db.commit()
     return {Keys.GROUP_ID: group.id, Fields.USER_ID: str(payload.user_id)}
 
@@ -176,9 +193,9 @@ async def add_member(id: str, payload: GroupMemberAdd = Body(default=None), curr
 async def remove_member(id: str, userId: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
     group = db.scalar(select(Group).where(Group.id == id))
     if group is None:
-        raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.GROUP_NOT_FOUND)
     if not _is_admin(db, group.id, current_user.id):
-        raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
     membership = db.scalar(
         select(GroupMembership).where(GroupMembership.group_id == group.id, GroupMembership.user_id == userId)
     )
@@ -192,7 +209,7 @@ async def remove_member(id: str, userId: str, current_user: User = Depends(get_c
 async def leave_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
     group = db.scalar(select(Group).where(Group.id == id))
     if group is None:
-        raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.GROUP_NOT_FOUND)
     membership = db.scalar(
         select(GroupMembership).where(
             GroupMembership.group_id == group.id, GroupMembership.user_id == current_user.id
@@ -209,7 +226,7 @@ async def leave_group(id: str, current_user: User = Depends(get_current_user), d
             )
         ) or 0
         if admin_count <= 1:
-            raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
     db.delete(membership)
     db.commit()
     return
