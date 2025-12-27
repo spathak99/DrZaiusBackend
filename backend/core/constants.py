@@ -24,6 +24,7 @@ class Tags:
     OPS: Final[str] = "Ops"
     FILES: Final[str] = "Files"
     GROUPS: Final[str] = "Groups"
+    RAG: Final[str] = "RAG"
 
 
 class Prefix:
@@ -47,6 +48,7 @@ class Prefix:
     FILES: Final[str] = "/files"
     GROUPS: Final[str] = "/groups"
     GROUP_MEMBERS: Final[str] = "/groups/{groupId}/members"
+    RAG: Final[str] = "/rag"
 
 class Routes:
     ROOT: Final[str] = ""
@@ -59,6 +61,7 @@ class Routes:
     CAREGIVER_ID: Final[str] = "/{caregiverId}"
     INVITATION_ID: Final[str] = "/{invitationId}"
     SELF: Final[str] = "/self"
+    QUERY: Final[str] = "/query"
     # Auth
     AUTH_SIGNUP: Final[str] = "/signup"
     AUTH_LOGIN: Final[str] = "/login"
@@ -156,6 +159,7 @@ class Summaries:
     GROUP_MEMBER_REMOVE: Final[str] = "Remove user from group (admin only)"
     GROUP_UPDATE: Final[str] = "Update group details (admin only)"
     GROUP_LEAVE: Final[str] = "Leave group"
+    RAG_QUERY: Final[str] = "Query the Vertex RAG corpus"
 
 
 class Messages:
@@ -228,6 +232,7 @@ class Errors:
     GROUP_NOT_FOUND: Final[str] = "group_not_found"
     FORBIDDEN: Final[str] = "forbidden"
     USER_NOT_FOUND: Final[str] = "user_not_found"
+    CORPUS_URI_NOT_SET: Final[str] = "corpus_uri_not_set"
     DB_UNAVAILABLE: Final[str] = "db_unavailable"
 
 
@@ -265,6 +270,12 @@ class Keys:
     INVITATION_ID: Final[str] = "invitationId"
     USER_ID: Final[str] = "userId"
     GROUP_ID: Final[str] = "groupId"
+    RESULTS: Final[str] = "results"
+
+
+class RagKeys:
+    SCORE: Final[str] = "score"
+    SNIPPET: Final[str] = "snippet"
 
 
 class Cors:

@@ -43,6 +43,10 @@ class Settings(BaseSettings):
         default="",
         description="Optional default Agent resource id to use for chat",
     )
+    enable_vertex: bool = Field(
+        default=False,
+        description="When true, call Vertex clients instead of stubs",
+    )
 
     class Config:
         env_file = ".env"

@@ -20,6 +20,7 @@ from backend.routers import (
     compliance,
     ops,
     groups,
+    rag,
 )
 
 
@@ -56,6 +57,7 @@ app.include_router(security.policies_router)
 app.include_router(compliance.router)
 app.include_router(ops.router)
 app.include_router(groups.router)
+app.include_router(rag.router)
 
 
 @app.on_event("startup")
