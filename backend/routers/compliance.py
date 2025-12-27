@@ -13,21 +13,21 @@ async def hipaa_report() -> Dict[str, Any]:
 
 @router.post("/risk-assessments", status_code=status.HTTP_201_CREATED, summary=Summaries.RISK_CREATE)
 async def create_risk_assessment(payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
-    return {"message": Messages.RISK_ASSESSMENT_STARTED, "data": payload}
+    return {Keys.MESSAGE: Messages.RISK_ASSESSMENT_STARTED, Keys.DATA: payload}
 
 
 @router.get("/risk-assessments/{id}", summary=Summaries.RISK_GET)
 async def get_risk_assessment(id: str) -> Dict[str, Any]:
-    return {"id": id}
+    return {Fields.ID: id}
 
 
 @router.post("/incidents", status_code=status.HTTP_201_CREATED, summary=Summaries.INCIDENT_CREATE)
 async def report_incident(payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
-    return {"message": Messages.INCIDENT_REPORTED, "data": payload}
+    return {Keys.MESSAGE: Messages.INCIDENT_REPORTED, Keys.DATA: payload}
 
 
 @router.get("/incidents/{id}", summary=Summaries.INCIDENT_GET)
 async def get_incident(id: str) -> Dict[str, Any]:
-    return {"id": id}
+    return {Fields.ID: id}
 
 

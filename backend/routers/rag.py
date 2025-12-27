@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, RagKeys
+from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, RagKeys, DocKeys
 from backend.routers.deps import get_current_user
 from backend.db.models import User
 from pydantic import BaseModel
@@ -28,9 +28,7 @@ async def rag_query(payload: RagQueryRequest = Body(default=None), current_user:
         res = client.query(corpus_uri=current_user.corpus_uri, query_text=q, top_k=top_k)
         results = res.get(Keys.RESULTS, [])
     else:
-        results = [
-            {RagKeys.SCORE: 0.9, RagKeys.SNIPPET: f"Mocked result for '{q}'", "docId": "mock-1"},
-        ]
+        results = [{RagKeys.SCORE: 0.9, RagKeys.SNIPPET: f"Mocked result for '{q}'", DocKeys.DOC_ID: "mock-1"}]
     return {Fields.ID: current_user.id, Keys.RESULTS: results}
 
 

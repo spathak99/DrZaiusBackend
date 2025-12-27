@@ -174,6 +174,7 @@ class Messages:
     MESSAGE_UPDATED: Final[str] = "message updated"
     PARTICIPANT_ADDED: Final[str] = "participant added"
     FILE_UPLOADED: Final[str] = "file uploaded"
+    FILE_QUEUED: Final[str] = "file queued for ingestion"
     ACCESS_GRANTED: Final[str] = "access granted"
     ACCESS_UPDATED: Final[str] = "access updated"
     EMBEDDINGS_JOB_ENQUEUED: Final[str] = "embeddings job enqueued"
@@ -265,6 +266,10 @@ class Keys:
     DATA: Final[str] = "data"
     STATUS: Final[str] = "status"
     JOB_ID: Final[str] = "jobId"
+    PROJECT_ID: Final[str] = "projectId"
+    BUCKET: Final[str] = "bucket"
+    OBJECT: Final[str] = "object"
+    VERTEX_ENABLED: Final[str] = "vertexEnabled"
     DOWNLOAD: Final[str] = "download"
     EMBEDDINGS: Final[str] = "embeddings"
     # Entity Id keys

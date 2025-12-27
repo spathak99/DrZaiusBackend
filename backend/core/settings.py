@@ -47,6 +47,10 @@ class Settings(BaseSettings):
         default=False,
         description="When true, call Vertex clients instead of stubs",
     )
+    enable_pipeline: bool = Field(
+        default=False,
+        description="When true, route uploads to temp bucket + Pub/Sub + DLP pipeline",
+    )
 
     class Config:
         env_file = ".env"
