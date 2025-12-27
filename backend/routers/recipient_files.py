@@ -5,12 +5,15 @@ from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
-from backend.services import DocsService
+from backend.services import DocsService, IngestionService
+from backend.core.settings import get_settings
 from backend.routers.deps import get_current_user
 
 
 router = APIRouter(prefix=Prefix.RECIPIENT_FILES, tags=[Tags.RECIPIENT_DATA], dependencies=[Depends(get_current_user)])
 docs = DocsService()
+ingestion = IngestionService()
+settings = get_settings()
 
 def _assert_can_access_recipient(db: Session, recipient_id: str, current_user: User) -> None:
     # Allow self
@@ -35,9 +38,21 @@ async def upload_recipient_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
     _assert_can_access_recipient(db, id, current_user)
     content = await file.read()
-    created = docs.upload_doc(
-        corpus_uri=user.corpus_uri, file_name=file.filename, content_type=file.content_type, content=content
-    )
+    # If pipeline is enabled, enqueue to temp bucket + Pub/Sub instead of direct RAG
+    if settings.enable_pipeline:
+        if not user.gcp_project_id or not user.temp_bucket:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.MISSING_INGESTION_CONFIG)
+        job = ingestion.enqueue_ingestion(
+            user_id=str(user.id),
+            gcp_project_id=user.gcp_project_id,
+            temp_bucket=user.temp_bucket,
+            file_name=file.filename or "upload",
+            content_type=file.content_type or "application/octet-stream",
+            content=content,
+        )
+        return {Keys.MESSAGE: Messages.FILE_QUEUED, Keys.RECIPIENT_ID: id, Keys.DATA: job}
+    # Default: direct ingestion to RAG
+    created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=file.content_type, content=content)
     return {Keys.MESSAGE: Messages.FILE_UPLOADED, Keys.RECIPIENT_ID: id, Keys.DATA: created}
 
 

@@ -235,6 +235,7 @@ class Errors:
     USER_NOT_FOUND: Final[str] = "user_not_found"
     CORPUS_URI_NOT_SET: Final[str] = "corpus_uri_not_set"
     DB_UNAVAILABLE: Final[str] = "db_unavailable"
+    MISSING_INGESTION_CONFIG: Final[str] = "missing_ingestion_config"
 
 
 class Defaults:
@@ -336,3 +337,16 @@ class ChatRoles:
 class GroupRoles:
     ADMIN: Final[str] = "admin"
     MEMBER: Final[str] = "member"
+
+
+class Tables:
+    USERS: Final[str] = "users"
+    GROUPS: Final[str] = "groups"
+    GROUP_MEMBERSHIPS: Final[str] = "group_memberships"
+    RECIPIENT_CAREGIVER_ACCESS: Final[str] = "recipient_caregiver_access"
+    CHATS: Final[str] = "chats"
+    CHAT_PARTICIPANTS: Final[str] = "chat_participants"
+    MESSAGES: Final[str] = "messages"
+    FILES: Final[str] = "files"
+    FILE_ACCESS: Final[str] = "file_access"
+    INVITATIONS: Final[str] = "invitations"

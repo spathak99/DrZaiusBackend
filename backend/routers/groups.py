@@ -25,7 +25,7 @@ def _is_admin(db: Session, group_id: UUID, user_id: UUID) -> bool:
     )
     return bool(membership and membership.role == GroupRoles.ADMIN)
 
-def _get_existing_admin(db: Session, group_id: UUID) -> GroupMembership | None:
+def _get_existing_admin(db: Session, group_id: UUID) -> Optional[GroupMembership]:
     return db.scalar(
         select(GroupMembership).where(
             GroupMembership.group_id == group_id, GroupMembership.role == GroupRoles.ADMIN
