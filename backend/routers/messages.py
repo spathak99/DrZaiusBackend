@@ -18,7 +18,7 @@ async def create_message(
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     if not current_user.chat_history_uri:
-        raise HTTPException(status_code=400, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
     body = payload.model_dump()
     return history.create_message(
         history_uri=current_user.chat_history_uri,
@@ -31,7 +31,7 @@ async def create_message(
 @router.get(Routes.ROOT, summary=Summaries.MESSAGE_LIST)
 async def list_messages(chatId: str, current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
     if not current_user.chat_history_uri:
-        raise HTTPException(status_code=400, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
     items = history.list_messages(history_uri=current_user.chat_history_uri, chat_id=chatId)
     return {Keys.CHAT_ID: chatId, Keys.ITEMS: items}
 
@@ -39,7 +39,7 @@ async def list_messages(chatId: str, current_user: User = Depends(get_current_us
 @router.get(Routes.MESSAGE_ID, summary=Summaries.MESSAGE_GET)
 async def get_message(chatId: str, messageId: str, current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
     if not current_user.chat_history_uri:
-        raise HTTPException(status_code=400, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
     return history.get_message(history_uri=current_user.chat_history_uri, chat_id=chatId, message_id=messageId)
 
 
@@ -52,7 +52,7 @@ async def update_message(
 ) -> Dict[str, Any]:
     # Stub: treat update as create of a new message for now
     if not current_user.chat_history_uri:
-        raise HTTPException(status_code=400, detail="chat_history_uri_not_set")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
     body = payload.model_dump(exclude_none=True)
     return history.create_message(
         history_uri=current_user.chat_history_uri,
@@ -65,7 +65,7 @@ async def update_message(
 @router.delete(Routes.MESSAGE_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.MESSAGE_DELETE)
 async def delete_message(chatId: str, messageId: str, current_user: User = Depends(get_current_user)) -> None:
     if not current_user.chat_history_uri:
-        raise HTTPException(status_code=400, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.CHAT_HISTORY_URI_NOT_SET)
     history.delete_message(history_uri=current_user.chat_history_uri, chat_id=chatId, message_id=messageId)
     return
 

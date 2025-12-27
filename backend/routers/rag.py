@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, RagKeys
 from backend.routers.deps import get_current_user
 from backend.db.models import User
@@ -21,7 +21,7 @@ class RagQueryRequest(BaseModel):
 @router.post(Routes.QUERY, summary=Summaries.RAG_QUERY)
 async def rag_query(payload: RagQueryRequest = Body(default=None), current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
     if not current_user.corpus_uri:
-        raise HTTPException(status_code=400, detail=Errors.CORPUS_URI_NOT_SET)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.CORPUS_URI_NOT_SET)
     q = payload.query
     top_k = payload.top_k or 5
     if settings.enable_vertex:

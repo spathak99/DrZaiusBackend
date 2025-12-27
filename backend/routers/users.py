@@ -53,10 +53,10 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         uuid = UUID(id)
     except Exception:
-        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
     user = db.scalar(select(User).where(User.id == uuid))
     if user is None:
-        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
     return {
         Fields.ID: user.id,
         Fields.USERNAME: user.username,
@@ -92,10 +92,10 @@ async def patch_user(
     except Exception:
         raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
     if current_user.id != uuid:
-        raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
     user = db.scalar(select(User).where(User.id == uuid))
     if user is None:
-        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
     data = payload.model_dump(exclude_none=True)
     if "corpus_uri" in data:
         user.corpus_uri = data["corpus_uri"]
