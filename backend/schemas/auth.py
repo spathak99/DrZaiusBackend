@@ -9,6 +9,12 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     role: Role
+    # Profile (optional at signup)
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    age: Optional[int] = None
+    country: Optional[str] = None
+    avatar_uri: Optional[str] = None
     corpus_uri: str
     account_type: Optional[AccountType] = None
     group_id: Optional[UUID] = None

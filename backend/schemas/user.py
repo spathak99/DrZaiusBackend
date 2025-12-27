@@ -22,6 +22,12 @@ class UserResponse(Timestamped):
     username: str
     email: EmailStr
     role: Role
+    # Profile
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    age: Optional[int] = None
+    country: Optional[str] = None
+    avatar_uri: Optional[str] = None
     corpus_uri: str
     chat_history_uri: Optional[str] = None
     group_ids: List[UUID] = []
@@ -33,6 +39,12 @@ class UserResponse(Timestamped):
 
 
 class UserSettingsUpdate(BaseModel):
+    # Profile
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    age: Optional[int] = None
+    country: Optional[str] = None
+    avatar_uri: Optional[str] = None
     corpus_uri: Optional[str] = None
     chat_history_uri: Optional[str] = None
     account_type: Optional[AccountType] = None
