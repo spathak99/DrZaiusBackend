@@ -272,6 +272,9 @@ class Keys:
     GROUP_ID: Final[str] = "groupId"
     RESULTS: Final[str] = "results"
 
+class Headers:
+    TOTAL_COUNT: Final[str] = "X-Total-Count"
+
 
 class RagKeys:
     SCORE: Final[str] = "score"

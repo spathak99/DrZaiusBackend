@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status, Response
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, GroupRoles, Routes
+from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, GroupRoles, Routes, Headers
 from backend.db.database import get_db
 from backend.db.models import User, Group, GroupMembership
 from backend.routers.deps import get_current_user
@@ -143,7 +143,7 @@ async def list_members(
         {Fields.USER_ID: m.user_id, Fields.ACCESS_LEVEL: m.role, Fields.CREATED_AT: m.created_at, Fields.UPDATED_AT: m.updated_at}
         for m in memberships
     ]
-    response.headers["X-Total-Count"] = str(total)
+    response.headers[Headers.TOTAL_COUNT] = str(total)
     return {Keys.GROUP_ID: group.id, Keys.ITEMS: items}
 
 

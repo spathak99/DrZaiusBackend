@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Body, status, Depends, HTTPException, Response
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers
 from backend.schemas import UserCreate, UserUpdate, UserResponse
 from backend.db.database import get_db
 from backend.db.models import User, GroupMembership
@@ -39,7 +39,7 @@ async def list_users(
         }
         for u in users
     ]
-    response.headers["X-Total-Count"] = str(total)
+    response.headers[Headers.TOTAL_COUNT] = str(total)
     return {"items": items}
 
 
@@ -53,10 +53,10 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         uuid = UUID(id)
     except Exception:
-        raise HTTPException(status_code=404, detail="not_found")
+        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
     user = db.scalar(select(User).where(User.id == uuid))
     if user is None:
-        raise HTTPException(status_code=404, detail="not_found")
+        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
     return {
         Fields.ID: user.id,
         Fields.USERNAME: user.username,
@@ -90,12 +90,12 @@ async def patch_user(
     try:
         uuid = UUID(id)
     except Exception:
-        raise HTTPException(status_code=404, detail="not_found")
+        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
     if current_user.id != uuid:
         raise HTTPException(status_code=403, detail=Errors.FORBIDDEN)
     user = db.scalar(select(User).where(User.id == uuid))
     if user is None:
-        raise HTTPException(status_code=404, detail="not_found")
+        raise HTTPException(status_code=404, detail=Errors.USER_NOT_FOUND)
     data = payload.model_dump(exclude_none=True)
     if "corpus_uri" in data:
         user.corpus_uri = data["corpus_uri"]
