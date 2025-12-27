@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 from uuid import UUID
-from fastapi import APIRouter, Body, status, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Body, status, Depends, HTTPException, Response
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors
 from backend.schemas import UserCreate, UserUpdate, UserResponse
@@ -15,8 +15,16 @@ router = APIRouter(prefix=Prefix.USERS, tags=[Tags.USERS])
 
 
 @router.get("", summary=Summaries.USERS_LIST)
-async def list_users(db: Session = Depends(get_db)) -> Dict[str, Any]:
-    users = list(db.scalars(select(User)))
+async def list_users(
+    response: Response,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    total = db.scalar(select(func.count()).select_from(User)) or 0
+    users = db.scalars(
+        select(User).order_by(User.created_at).limit(limit).offset(offset)
+    ).all()
     items: List[Dict[str, Any]] = [
         {
             Fields.ID: u.id,
@@ -31,6 +39,7 @@ async def list_users(db: Session = Depends(get_db)) -> Dict[str, Any]:
         }
         for u in users
     ]
+    response.headers["X-Total-Count"] = str(total)
     return {"items": items}
 
 

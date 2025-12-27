@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, Response
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
@@ -118,15 +118,32 @@ async def get_group(id: str, current_user: User = Depends(get_current_user), db:
 
 
 @router.get(Routes.ID + Routes.ACCESS, summary=Summaries.GROUP_MEMBERS_LIST)
-async def list_members(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def list_members(
+    id: str,
+    response: Response,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
     group = db.scalar(select(Group).where(Group.id == id))
     if group is None:
         raise HTTPException(status_code=404, detail=Errors.GROUP_NOT_FOUND)
-    memberships = db.scalars(select(GroupMembership).where(GroupMembership.group_id == group.id)).all()
+    total = db.scalar(
+        select(func.count()).select_from(GroupMembership).where(GroupMembership.group_id == group.id)
+    ) or 0
+    memberships = db.scalars(
+        select(GroupMembership)
+        .where(GroupMembership.group_id == group.id)
+        .order_by(GroupMembership.created_at)
+        .limit(limit)
+        .offset(offset)
+    ).all()
     items = [
         {Fields.USER_ID: m.user_id, Fields.ACCESS_LEVEL: m.role, Fields.CREATED_AT: m.created_at, Fields.UPDATED_AT: m.updated_at}
         for m in memberships
     ]
+    response.headers["X-Total-Count"] = str(total)
     return {Keys.GROUP_ID: group.id, Keys.ITEMS: items}
 
 
