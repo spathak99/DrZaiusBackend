@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from fastapi import APIRouter, Body, status
-from backend.core.constants import Prefix, Tags, Summaries, Messages
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Keys
 
 
 router = APIRouter(prefix=Prefix.COMPLIANCE, tags=[Tags.COMPLIANCE])
@@ -8,7 +8,7 @@ router = APIRouter(prefix=Prefix.COMPLIANCE, tags=[Tags.COMPLIANCE])
 
 @router.get("/hipaa-report", summary=Summaries.HIPAA_REPORT)
 async def hipaa_report() -> Dict[str, Any]:
-    return {"report": "hipaa report"}
+    return {Keys.DATA: "hipaa report"}
 
 
 @router.post("/risk-assessments", status_code=status.HTTP_201_CREATED, summary=Summaries.RISK_CREATE)

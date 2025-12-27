@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from fastapi import APIRouter, Body, status
-from backend.core.constants import Prefix, Tags, Summaries, Routes
+from backend.core.constants import Prefix, Tags, Summaries, Routes, Fields
 from backend.schemas import SecurityPolicyCreate, SecurityPolicyUpdate, KeyGenerateRequest
 from backend.services import SecurityService
 
@@ -17,7 +17,7 @@ async def generate_key_pair(payload: KeyGenerateRequest = Body(default=None)) ->
 
 @keys_router.get(Routes.ID, summary=Summaries.KEY_GET)
 async def get_key(id: str) -> Dict[str, Any]:
-    return {"id": id}
+    return {Fields.ID: id}
 
 
 @policies_router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.POLICY_CREATE)
@@ -27,7 +27,7 @@ async def create_policy(payload: SecurityPolicyCreate = Body(default=None)) -> D
 
 @policies_router.get(Routes.ID, summary=Summaries.POLICY_GET)
 async def get_policy(id: str) -> Dict[str, Any]:
-    return {"id": id}
+    return {Fields.ID: id}
 
 
 @policies_router.put(Routes.ID, summary=Summaries.POLICY_UPDATE)

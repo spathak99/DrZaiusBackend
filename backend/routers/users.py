@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Body, status, Depends, HTTPException, Response
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers, Keys
 from backend.schemas import UserCreate, UserUpdate, UserResponse
 from backend.db.database import get_db
 from backend.db.models import User, GroupMembership
@@ -45,7 +45,7 @@ async def list_users(
 
 @router.post("", status_code=status.HTTP_201_CREATED, summary=Summaries.USER_CREATE)
 async def create_user(payload: UserCreate = Body(default=None)) -> Dict[str, Any]:
-    return {"message": Messages.USER_CREATED, "data": payload.model_dump()}
+    return {Keys.MESSAGE: Messages.USER_CREATED, Keys.DATA: payload.model_dump()}
 
 
 @router.get("/{id}", summary=Summaries.USER_GET, response_model=UserResponse)
@@ -72,7 +72,7 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
 
 @router.put("/{id}", summary=Summaries.USER_UPDATE)
 async def update_user(id: str, payload: UserUpdate = Body(default=None)) -> Dict[str, Any]:
-    return {"message": Messages.USER_UPDATED, "id": id, "data": payload.model_dump(exclude_none=True)}
+    return {Keys.MESSAGE: Messages.USER_UPDATED, Fields.ID: id, Keys.DATA: payload.model_dump(exclude_none=True)}
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.USER_DELETE)
