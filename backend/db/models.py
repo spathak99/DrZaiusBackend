@@ -31,6 +31,10 @@ BUCKET_NAME_MAX_LEN = 1024
 GROUP_NAME_MAX_LEN = 255
 GROUP_DESC_MAX_LEN = 1024
 GROUP_ROLE_MAX_LEN = 20
+FULL_NAME_MAX_LEN = 255
+PHONE_NUMBER_MAX_LEN = 32
+COUNTRY_MAX_LEN = 64
+AVATAR_URI_MAX_LEN = 2048
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
@@ -60,6 +64,12 @@ class User(Base):
     gcp_project_id: Mapped[Optional[str]] = mapped_column(String(PROJECT_ID_MAX_LEN), nullable=True)
     temp_bucket: Mapped[Optional[str]] = mapped_column(String(BUCKET_NAME_MAX_LEN), nullable=True)
     payment_info: Mapped[Optional[dict]] = mapped_column(sa.dialects.postgresql.JSONB, nullable=True)
+    # Profile fields (for mobile UX)
+    full_name: Mapped[Optional[str]] = mapped_column(String(FULL_NAME_MAX_LEN), nullable=True)
+    phone_number: Mapped[Optional[str]] = mapped_column(String(PHONE_NUMBER_MAX_LEN), nullable=True)
+    age: Mapped[Optional[int]] = mapped_column(nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String(COUNTRY_MAX_LEN), nullable=True)
+    avatar_uri: Mapped[Optional[str]] = mapped_column(String(AVATAR_URI_MAX_LEN), nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
