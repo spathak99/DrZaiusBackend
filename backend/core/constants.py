@@ -68,6 +68,7 @@ class Routes:
     AUTH_ME: Final[str] = "/me"
     AUTH_LOGOUT: Final[str] = "/logout"
     AUTH_CHANGE_PASSWORD: Final[str] = "/change-password"
+    AVATAR: Final[str] = "/avatar"
     # Health
     HEALTHZ: Final[str] = "/healthz"
     READYZ: Final[str] = "/readyz"
@@ -162,6 +163,7 @@ class Summaries:
     GROUP_UPDATE: Final[str] = "Update group details (admin only)"
     GROUP_LEAVE: Final[str] = "Leave group"
     RAG_QUERY: Final[str] = "Query the Vertex RAG corpus"
+    AVATAR_UPLOAD: Final[str] = "Upload user avatar"
 
 
 class Messages:

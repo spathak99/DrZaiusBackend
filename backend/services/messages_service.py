@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from backend.core.constants import Messages
+from backend.core.constants import Messages, Keys, Fields
 
 
 class MessagesService:
@@ -7,13 +7,18 @@ class MessagesService:
         return []
 
     def get_message(self, chat_id: str, message_id: str) -> Dict[str, Any]:
-        return {"chatId": chat_id, "messageId": message_id}
+        return {Keys.CHAT_ID: chat_id, Keys.MESSAGE_ID: message_id}
 
     def create_message(self, chat_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        return {"message": Messages.MESSAGE_CREATED, "chatId": chat_id, "data": data}
+        return {Keys.MESSAGE: Messages.MESSAGE_CREATED, Keys.CHAT_ID: chat_id, Keys.DATA: data}
 
     def update_message(self, chat_id: str, message_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        return {"message": Messages.MESSAGE_UPDATED, "chatId": chat_id, "messageId": message_id, "data": data}
+        return {
+            Keys.MESSAGE: Messages.MESSAGE_UPDATED,
+            Keys.CHAT_ID: chat_id,
+            Keys.MESSAGE_ID: message_id,
+            Keys.DATA: data,
+        }
 
     def delete_message(self, chat_id: str, message_id: str) -> None:
         return

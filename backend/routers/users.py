@@ -1,9 +1,9 @@
 from typing import Any, Dict, List
 from uuid import UUID
-from fastapi import APIRouter, Body, status, Depends, HTTPException, Response
+from fastapi import APIRouter, Body, status, Depends, HTTPException, Response, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers, Keys
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers, Keys, Routes
 from backend.schemas import UserCreate, UserUpdate, UserResponse
 from backend.db.database import get_db
 from backend.db.models import User, GroupMembership
@@ -49,7 +49,7 @@ async def list_users(
         for u in users
     ]
     response.headers[Headers.TOTAL_COUNT] = str(total)
-    return {"items": items}
+    return {Keys.ITEMS: items}
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, summary=Summaries.USER_CREATE)
@@ -87,6 +87,27 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
         Fields.PAYMENT_INFO: user.payment_info,
     }
 
+@router.post(f"/{{id}}{Routes.AVATAR}", status_code=status.HTTP_201_CREATED, summary=Summaries.AVATAR_UPLOAD)
+async def upload_avatar(
+    id: str,
+    file: UploadFile = File(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    try:
+        uuid = UUID(id)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    if current_user.id != uuid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
+    if not current_user.temp_bucket:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.MISSING_INGESTION_CONFIG)
+    fname = (file.filename or "avatar").split("/")[-1]
+    avatar_uri = f"gs://{current_user.temp_bucket}/avatars/{current_user.id}/{fname}"
+    current_user.avatar_uri = avatar_uri
+    db.commit()
+    db.refresh(current_user)
+    return {Fields.ID: current_user.id, Fields.AVATAR_URI: current_user.avatar_uri}
 
 @router.put("/{id}", summary=Summaries.USER_UPDATE)
 async def update_user(id: str, payload: UserUpdate = Body(default=None)) -> Dict[str, Any]:

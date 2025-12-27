@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
-from backend.core.constants import Messages
+from backend.core.constants import Messages, Fields, Keys
+from backend.schemas.common import AccessLevel
 
 
 class AccessService:
@@ -7,18 +8,27 @@ class AccessService:
         return []
 
     def assign_caregiver(self, recipient_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        return {"message": Messages.CAREGIVER_ASSIGNED, "recipientId": recipient_id, "data": data}
+        return {
+            Keys.MESSAGE: Messages.CAREGIVER_ASSIGNED,
+            Fields.ACCESS_LEVEL: data.get(Fields.ACCESS_LEVEL),
+            Keys.RECIPIENT_ID: recipient_id,
+            Keys.DATA: data,
+        }
 
     def revoke_caregiver(self, recipient_id: str, caregiver_id: str) -> None:
         return
 
     def update_caregiver_access(self, recipient_id: str, caregiver_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        return {"message": Messages.ACCESS_UPDATED, "recipientId": recipient_id, "caregiverId": caregiver_id, "data": data}
+        return {
+            Keys.MESSAGE: Messages.ACCESS_UPDATED,
+            Keys.RECIPIENT_ID: recipient_id,
+            Keys.CAREGIVER_ID: caregiver_id,
+            Keys.DATA: data,
+        }
 
     def list_caregiver_recipients(self, caregiver_id: str) -> List[Dict[str, Any]]:
         return []
 
     def get_caregiver_recipient(self, caregiver_id: str, recipient_id: str) -> Dict[str, Any]:
-        return {"caregiverId": caregiver_id, "recipientId": recipient_id, "access_level": "read"}
-
+        return {Keys.CAREGIVER_ID: caregiver_id, Keys.RECIPIENT_ID: recipient_id, Fields.ACCESS_LEVEL: AccessLevel.read}
 

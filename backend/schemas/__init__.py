@@ -10,7 +10,7 @@ from backend.schemas.file import (
     FileResponse,
     FileAccessEntry,
 )
-from backend.schemas.invitation import InvitationCreate, InvitationResponse
+from backend.schemas.invitation import InvitationCreate, InvitationResponse, RecipientInvitationCreate
 from backend.schemas.access import CaregiverAccessUpdate, CaregiverAssign, CaregiverAccessResponse
 from backend.schemas.security import (
     SecurityPolicyCreate,
@@ -57,6 +57,7 @@ __all__ = [
     "FileAccessEntry",
     "InvitationCreate",
     "InvitationResponse",
+    "RecipientInvitationCreate",
     "CaregiverAccessUpdate",
     "CaregiverAssign",
     "CaregiverAccessResponse",

@@ -30,7 +30,7 @@ async def delete_file(id: str) -> None:
 @router.post(Routes.FILE_ID + Routes.EMBEDDINGS, status_code=status.HTTP_201_CREATED, summary=Summaries.FILE_EMBEDDINGS_CREATE)
 async def generate_file_embeddings(fileId: str, payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
     job_id = enqueue_embedding_job("file", fileId, payload)
-    return {"message": Messages.EMBEDDINGS_JOB_ENQUEUED, "fileId": fileId, "jobId": job_id}
+    return {Keys.MESSAGE: Messages.EMBEDDINGS_JOB_ENQUEUED, Keys.FILE_ID: fileId, Keys.JOB_ID: job_id}
 
 
 @router.get(Routes.FILE_ID + Routes.EMBEDDINGS, summary=Summaries.FILE_EMBEDDINGS_GET)

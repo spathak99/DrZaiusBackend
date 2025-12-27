@@ -1,6 +1,6 @@
 from uuid import UUID
-from pydantic import BaseModel
-from backend.schemas.common import Timestamped, InvitationStatus
+from pydantic import BaseModel, EmailStr
+from backend.schemas.common import Timestamped, InvitationStatus, AccessLevel
 
 
 class InvitationCreate(BaseModel):
@@ -14,3 +14,8 @@ class InvitationResponse(Timestamped):
     recipient_id: UUID
     status: InvitationStatus
 
+
+class RecipientInvitationCreate(BaseModel):
+    email: EmailStr
+    role: AccessLevel
+    
