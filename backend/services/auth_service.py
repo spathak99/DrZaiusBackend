@@ -105,6 +105,11 @@ class AuthService:
         role: str,
         corpus_uri: str,
         chat_history_uri: Optional[str],
+        account_type: Optional[str] = None,
+        group_id: Optional[str] = None,
+        gcp_project_id: Optional[str] = None,
+        temp_bucket: Optional[str] = None,
+        payment_info: Optional[Dict[str, Any]] = None,
     ) -> Tuple[User, str]:
         # Uniqueness checks
         if db.scalar(select(User).where(User.username == username)) is not None:
@@ -119,6 +124,11 @@ class AuthService:
             role=role,
             corpus_uri=corpus_uri,
             chat_history_uri=chat_history_uri,
+            account_type=account_type,
+            group_id=group_id,
+            gcp_project_id=gcp_project_id,
+            temp_bucket=temp_bucket,
+            payment_info=payment_info,
         )
         db.add(user)
         db.commit()

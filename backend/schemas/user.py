@@ -1,7 +1,7 @@
 from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel, EmailStr
-from backend.schemas.common import Role, Timestamped
+from backend.schemas.common import Role, Timestamped, AccountType
 
 
 class UserCreate(BaseModel):
@@ -25,10 +25,19 @@ class UserResponse(Timestamped):
     corpus_uri: str
     chat_history_uri: Optional[str] = None
     group_ids: List[UUID] = []
+    account_type: Optional[AccountType] = None
+    group_id: Optional[UUID] = None
+    gcp_project_id: Optional[str] = None
+    temp_bucket: Optional[str] = None
+    payment_info: Optional[dict] = None
 
 
 class UserSettingsUpdate(BaseModel):
     corpus_uri: Optional[str] = None
     chat_history_uri: Optional[str] = None
+    account_type: Optional[AccountType] = None
+    gcp_project_id: Optional[str] = None
+    temp_bucket: Optional[str] = None
+    payment_info: Optional[dict] = None
 
 

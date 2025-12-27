@@ -1,4 +1,5 @@
 import uuid
+import sqlalchemy as sa
 from datetime import datetime
 from typing import List, Optional
 
@@ -24,6 +25,8 @@ DOWNLOAD_LINK_MAX_LEN = 255
 INVITATION_STATUS_MAX_LEN = 20
 CORPUS_URI_MAX_LEN = 2048
 CHAT_HISTORY_URI_MAX_LEN = 2048
+PROJECT_ID_MAX_LEN = 128
+BUCKET_NAME_MAX_LEN = 1024
 GROUP_NAME_MAX_LEN = 255
 GROUP_DESC_MAX_LEN = 1024
 
@@ -50,6 +53,11 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(ROLE_MAX_LEN), nullable=False)
     corpus_uri: Mapped[str] = mapped_column(String(CORPUS_URI_MAX_LEN), nullable=False)
     chat_history_uri: Mapped[str] = mapped_column(String(CHAT_HISTORY_URI_MAX_LEN), nullable=True)
+    account_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    group_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("groups.id", ondelete="SET NULL"), nullable=True)
+    gcp_project_id: Mapped[Optional[str]] = mapped_column(String(PROJECT_ID_MAX_LEN), nullable=True)
+    temp_bucket: Mapped[Optional[str]] = mapped_column(String(BUCKET_NAME_MAX_LEN), nullable=True)
+    payment_info: Mapped[Optional[dict]] = mapped_column(sa.dialects.postgresql.JSONB, nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
@@ -169,7 +177,10 @@ class Group(Base):
 class GroupMembership(Base):
     __tablename__ = "group_memberships"
 
-    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_membership_group_user"),)
+    __table_args__ = (
+        UniqueConstraint("group_id", "user_id", name="uq_group_membership_group_user"),
+        UniqueConstraint("user_id", name="uq_group_membership_user_unique"),
+    )
     id: Mapped[uuid.UUID] = uuid_pk()
     group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))

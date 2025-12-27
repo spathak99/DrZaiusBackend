@@ -36,6 +36,10 @@ async def list_users(
             Fields.CORPUS_URI: u.corpus_uri,
             Fields.CHAT_HISTORY_URI: u.chat_history_uri,
             Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == u.id)).all()],
+            Fields.ACCOUNT_TYPE: u.account_type,
+            Fields.GCP_PROJECT_ID: u.gcp_project_id,
+            Fields.TEMP_BUCKET: u.temp_bucket,
+            Fields.PAYMENT_INFO: u.payment_info,
         }
         for u in users
     ]
@@ -67,6 +71,10 @@ async def get_user(id: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
         Fields.CORPUS_URI: user.corpus_uri,
         Fields.CHAT_HISTORY_URI: user.chat_history_uri,
         Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == user.id)).all()],
+        Fields.ACCOUNT_TYPE: user.account_type,
+        Fields.GCP_PROJECT_ID: user.gcp_project_id,
+        Fields.TEMP_BUCKET: user.temp_bucket,
+        Fields.PAYMENT_INFO: user.payment_info,
     }
 
 
@@ -97,10 +105,18 @@ async def patch_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
     data = payload.model_dump(exclude_none=True)
-    if "corpus_uri" in data:
-        user.corpus_uri = data["corpus_uri"]
-    if "chat_history_uri" in data:
-        user.chat_history_uri = data["chat_history_uri"]
+    if Fields.CORPUS_URI in data:
+        user.corpus_uri = data[Fields.CORPUS_URI]
+    if Fields.CHAT_HISTORY_URI in data:
+        user.chat_history_uri = data[Fields.CHAT_HISTORY_URI]
+    if Fields.ACCOUNT_TYPE in data:
+        user.account_type = data[Fields.ACCOUNT_TYPE]
+    if Fields.GCP_PROJECT_ID in data:
+        user.gcp_project_id = data[Fields.GCP_PROJECT_ID]
+    if Fields.TEMP_BUCKET in data:
+        user.temp_bucket = data[Fields.TEMP_BUCKET]
+    if Fields.PAYMENT_INFO in data:
+        user.payment_info = data[Fields.PAYMENT_INFO]
     db.commit()
     db.refresh(user)
     return {
@@ -113,6 +129,10 @@ async def patch_user(
         Fields.CORPUS_URI: user.corpus_uri,
         Fields.CHAT_HISTORY_URI: user.chat_history_uri,
         Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == user.id)).all()],
+        Fields.ACCOUNT_TYPE: user.account_type,
+        Fields.GCP_PROJECT_ID: user.gcp_project_id,
+        Fields.TEMP_BUCKET: user.temp_bucket,
+        Fields.PAYMENT_INFO: user.payment_info,
     }
 
 

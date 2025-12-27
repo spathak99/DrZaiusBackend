@@ -253,6 +253,11 @@ class Fields:
     DESCRIPTION: Final[str] = "description"
     CREATED_BY: Final[str] = "created_by"
     GROUP_IDS: Final[str] = "group_ids"
+    ACCOUNT_TYPE: Final[str] = "account_type"
+    GROUP_ID: Final[str] = "group_id"
+    GCP_PROJECT_ID: Final[str] = "gcp_project_id"
+    TEMP_BUCKET: Final[str] = "temp_bucket"
+    PAYMENT_INFO: Final[str] = "payment_info"
 
 class Keys:
     MESSAGE: Final[str] = "message"

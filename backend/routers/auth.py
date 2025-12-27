@@ -25,6 +25,11 @@ async def signup(payload: SignupRequest = Body(default=None), db: Session = Depe
             role=payload.role.value,
             corpus_uri=payload.corpus_uri,
             chat_history_uri=payload.chat_history_uri,
+            account_type=(payload.account_type.value if payload.account_type else None),
+            group_id=payload.group_id,
+            gcp_project_id=payload.gcp_project_id,
+            temp_bucket=payload.temp_bucket,
+            payment_info=payload.payment_info,
         )
         return {"access_token": token, "token_type": Messages.TOKEN_TYPE_BEARER}
     except ValueError as e:
@@ -70,6 +75,11 @@ async def auth_me(
             Fields.CORPUS_URI: user.corpus_uri,
             Fields.CHAT_HISTORY_URI: user.chat_history_uri,
             Fields.GROUP_IDS: [m.group_id for m in db.scalars(select(GroupMembership).where(GroupMembership.user_id == user.id)).all()],
+            Fields.ACCOUNT_TYPE: user.account_type,
+            Fields.GROUP_ID: user.group_id,
+            Fields.GCP_PROJECT_ID: user.gcp_project_id,
+            Fields.TEMP_BUCKET: user.temp_bucket,
+            Fields.PAYMENT_INFO: user.payment_info,
         }
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)

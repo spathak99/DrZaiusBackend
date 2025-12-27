@@ -7,6 +7,9 @@ class Role(str, Enum):
     recipient = "recipient"
     caregiver = "caregiver"
 
+class AccountType(str, Enum):
+    individual = "individual"
+    group = "group"
 
 class InvitationStatus(str, Enum):
     pending = "pending"
