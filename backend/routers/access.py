@@ -120,13 +120,19 @@ async def send_invitation(
 
 @caregiver_invitations_router.get(Routes.ROOT, summary=Summaries.INVITATIONS_SENT_LIST)
 async def list_sent_invitations(caregiverId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    caregiver = db.scalar(select(User).where(User.id == caregiverId))
+    if caregiver is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
     invites = db.scalars(
-        select(Invitation).where(Invitation.caregiver_id == caregiverId, Invitation.status == InvitationStatus.PENDING)
+        select(Invitation).where(
+            Invitation.status == InvitationStatus.PENDING,
+            ((Invitation.caregiver_id == caregiverId) | (Invitation.invited_email == caregiver.email)),
+        )
     ).all()
     items: List[Dict[str, Any]] = [
         {
             Fields.ID: str(inv.id),
-            Keys.CAREGIVER_ID: str(inv.caregiver_id),
+            Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
             Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
             Keys.STATUS: inv.status,
             "sent_by": inv.sent_by,
