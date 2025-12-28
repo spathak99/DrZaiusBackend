@@ -50,6 +50,22 @@ def upgrade():
         # users.chat_history_uri nullable
         if not _has_column(bind, "users", "chat_history_uri"):
             op.add_column("users", sa.Column("chat_history_uri", sa.String(length=2048), nullable=True))
+    else:
+        # Fresh DB: create a minimal users table that satisfies current and future FKs
+        op.create_table(
+            "users",
+            sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True),
+            sa.Column("username", sa.String(length=255), nullable=False),
+            sa.Column("email", sa.String(length=255), nullable=False),
+            sa.Column("password_hash", sa.String(length=255), nullable=False),
+            sa.Column("role", sa.String(length=20), nullable=False),
+            sa.Column("corpus_uri", sa.String(length=2048), nullable=False, server_default=""),
+            sa.Column("chat_history_uri", sa.String(length=2048), nullable=True),
+            sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()")),
+            sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()")),
+        )
+        op.create_index("ix_users_username", "users", ["username"], unique=True)
+        op.create_index("ix_users_email", "users", ["email"], unique=True)
 
     # groups table
     if not _has_table(bind, "groups"):
