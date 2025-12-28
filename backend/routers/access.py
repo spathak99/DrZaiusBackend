@@ -7,7 +7,8 @@ from backend.services import AccessService
 from backend.schemas import CaregiverAccessUpdate, RecipientInvitationCreate
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
-from backend.db.models import Invitation, User
+from backend.db.models import Invitation, User, RecipientCaregiverAccess
+import uuid
 
 
 recipient_access_router = APIRouter(
@@ -27,8 +28,14 @@ service = AccessService()
 
 
 @recipient_access_router.get(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVERS_LIST)
-async def list_recipient_caregivers(recipientId: str) -> Dict[str, Any]:
-    return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: service.list_recipient_caregivers(recipientId)}
+async def list_recipient_caregivers(recipientId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    rows = db.scalars(
+        select(RecipientCaregiverAccess).where(RecipientCaregiverAccess.recipient_id == recipientId)
+    ).all()
+    items: List[Dict[str, Any]] = [
+        {Keys.CAREGIVER_ID: r.caregiver_id, Fields.ACCESS_LEVEL: r.access_level} for r in rows
+    ]
+    return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
 
 
 @recipient_access_router.post(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVER_ASSIGN)
@@ -50,16 +57,27 @@ async def update_caregiver_access(
 
 
 @caregiver_recipients_router.get(Routes.ROOT, summary=Summaries.CAREGIVER_RECIPIENTS_LIST)
-async def list_caregiver_recipients(caregiverId: str) -> Dict[str, Any]:
-    return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: service.list_caregiver_recipients(caregiverId)}
+async def list_caregiver_recipients(caregiverId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    rows = db.scalars(
+        select(RecipientCaregiverAccess).where(RecipientCaregiverAccess.caregiver_id == caregiverId)
+    ).all()
+    items: List[Dict[str, Any]] = [
+        {Keys.RECIPIENT_ID: r.recipient_id, Fields.ACCESS_LEVEL: r.access_level} for r in rows
+    ]
+    return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: items}
 
 
 @caregiver_recipients_router.get(Routes.RECIPIENT_ID, summary=Summaries.CAREGIVER_RECIPIENT_GET)
-async def get_caregiver_recipient(caregiverId: str, recipientId: str) -> Dict[str, Any]:
-    rel = service.get_caregiver_recipient(caregiverId, recipientId)
-    if Fields.ACCESS_LEVEL not in rel:
-        rel[Fields.ACCESS_LEVEL] = AccessLevel.READ
-    return rel
+async def get_caregiver_recipient(caregiverId: str, recipientId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    rel = db.scalar(
+        select(RecipientCaregiverAccess).where(
+            RecipientCaregiverAccess.caregiver_id == caregiverId,
+            RecipientCaregiverAccess.recipient_id == recipientId,
+        )
+    )
+    if rel is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
+    return {Keys.CAREGIVER_ID: caregiverId, Keys.RECIPIENT_ID: recipientId, Fields.ACCESS_LEVEL: rel.access_level}
 
 
 @caregiver_invitations_router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.INVITATION_SEND)
@@ -68,8 +86,20 @@ async def send_invitation(caregiverId: str, payload: Dict[str, Any] = Body(defau
 
 
 @caregiver_invitations_router.get(Routes.ROOT, summary=Summaries.INVITATIONS_SENT_LIST)
-async def list_sent_invitations(caregiverId: str) -> Dict[str, Any]:
-    return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: []}
+async def list_sent_invitations(caregiverId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    invites = db.scalars(
+        select(Invitation).where(Invitation.caregiver_id == caregiverId, Invitation.status == InvitationStatus.PENDING)
+    ).all()
+    items: List[Dict[str, Any]] = [
+        {
+            Fields.ID: inv.id,
+            Keys.CAREGIVER_ID: inv.caregiver_id,
+            Keys.RECIPIENT_ID: inv.recipient_id,
+            Keys.STATUS: inv.status,
+        }
+        for inv in invites
+    ]
+    return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: items}
 
 
 @caregiver_invitations_router.delete(Routes.INVITATION_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.INVITATION_CANCEL)
@@ -102,12 +132,43 @@ async def list_recipient_invitations(recipientId: str, db: Session = Depends(get
 
 
 @recipient_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT)
-async def accept_invitation(recipientId: str, invitationId: str) -> Dict[str, Any]:
+async def accept_invitation(recipientId: str, invitationId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    try:
+        inv_uuid = uuid.UUID(invitationId)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    invitation = db.scalar(
+        select(Invitation).where(
+            Invitation.id == inv_uuid, Invitation.recipient_id == recipientId, Invitation.status == InvitationStatus.PENDING
+        )
+    )
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    # Mark accepted
+    invitation.status = InvitationStatus.ACCEPTED
+    # Grant default READ access entry
+    access = RecipientCaregiverAccess(recipient_id=invitation.recipient_id, caregiver_id=invitation.caregiver_id)
+    db.add(access)
+    db.commit()
+    db.refresh(invitation)
     return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.RECIPIENT_ID: recipientId, Keys.INVITATION_ID: invitationId}
 
 
 @recipient_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE)
-async def decline_invitation(recipientId: str, invitationId: str) -> Dict[str, Any]:
+async def decline_invitation(recipientId: str, invitationId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    try:
+        inv_uuid = uuid.UUID(invitationId)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    invitation = db.scalar(
+        select(Invitation).where(
+            Invitation.id == inv_uuid, Invitation.recipient_id == recipientId, Invitation.status == InvitationStatus.PENDING
+        )
+    )
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    invitation.status = InvitationStatus.DECLINED
+    db.commit()
     return {Keys.MESSAGE: Messages.INVITATION_DECLINED, Keys.RECIPIENT_ID: recipientId, Keys.INVITATION_ID: invitationId}
 
 
