@@ -45,4 +45,20 @@ class AccessService:
 			Fields.ACCESS_LEVEL: row.access_level,
 		}
 
+	def list_recipient_caregivers(self, db: Session, *, recipient_id: str) -> Dict[str, Any]:
+		rows = self.repo.list_for_recipient(db, recipient_id=recipient_id)
+		items = [{Keys.CAREGIVER_ID: r.caregiver_id, Fields.ACCESS_LEVEL: r.access_level} for r in rows]
+		return {Keys.RECIPIENT_ID: recipient_id, Keys.ITEMS: items}
+
+	def list_caregiver_recipients(self, db: Session, *, caregiver_id: str) -> Dict[str, Any]:
+		rows = self.repo.list_for_caregiver(db, caregiver_id=caregiver_id)
+		items = [{Keys.RECIPIENT_ID: r.recipient_id, Fields.ACCESS_LEVEL: r.access_level} for r in rows]
+		return {Keys.CAREGIVER_ID: caregiver_id, Keys.ITEMS: items}
+
+	def get_caregiver_recipient(self, db: Session, *, caregiver_id: str, recipient_id: str) -> Dict[str, Any]:
+		row = self.repo.get(db, recipient_id=recipient_id, caregiver_id=caregiver_id)
+		if row is None:
+			raise ValueError(Errors.RECIPIENT_NOT_FOUND)
+		return {Keys.CAREGIVER_ID: caregiver_id, Keys.RECIPIENT_ID: recipient_id, Fields.ACCESS_LEVEL: row.access_level}
+
 

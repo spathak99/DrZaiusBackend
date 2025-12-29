@@ -18,6 +18,7 @@ from backend.db.models import User, Invitation, RecipientCaregiverAccess
 from backend.repositories.invitations_repo import InvitationsRepository
 from backend.services.invite_signing import sign_invite
 from backend.services.email_service import send_invite_email
+import uuid
 
 
 class InvitationsService:
@@ -152,6 +153,84 @@ class InvitationsService:
 			}
 			for i in invs
 		]
+
+	def caregiver_accept(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
+		try:
+			inv_uuid = uuid.UUID(invitation_id)
+		except Exception:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		invitation = db.scalar(
+			select(Invitation).where(
+				Invitation.id == inv_uuid, Invitation.caregiver_id == caregiver_id, Invitation.status == InvitationStatus.PENDING
+			)
+		)
+		if invitation is None:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		invitation.status = InvitationStatus.ACCEPTED
+		access = RecipientCaregiverAccess(recipient_id=invitation.recipient_id, caregiver_id=invitation.caregiver_id)
+		db.add(access)
+		db.commit()
+		db.refresh(invitation)
+		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.CAREGIVER_ID: str(caregiver_id), Keys.INVITATION_ID: invitation_id}
+
+	def caregiver_decline(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
+		try:
+			inv_uuid = uuid.UUID(invitation_id)
+		except Exception:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		invitation = db.scalar(
+			select(Invitation).where(
+				Invitation.id == inv_uuid, Invitation.caregiver_id == caregiver_id, Invitation.status == InvitationStatus.PENDING
+			)
+		)
+		if invitation is None:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		invitation.status = InvitationStatus.DECLINED
+		db.commit()
+		return {Keys.MESSAGE: Messages.INVITATION_DECLINED, Keys.CAREGIVER_ID: str(caregiver_id), Keys.INVITATION_ID: invitation_id}
+
+	def recipient_accept(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
+		try:
+			inv_uuid = uuid.UUID(invitation_id)
+		except Exception:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		user = db.scalar(select(User).where(User.id == recipient_id))
+		invitation = db.scalar(
+			select(Invitation).where(
+				Invitation.id == inv_uuid,
+				Invitation.status == InvitationStatus.PENDING,
+				((Invitation.recipient_id == recipient_id) | (Invitation.invited_email == user.email)),
+			)
+		)
+		if invitation is None:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		invitation.status = InvitationStatus.ACCEPTED
+		if invitation.recipient_id is None:
+			invitation.recipient_id = user.id
+		access = RecipientCaregiverAccess(recipient_id=invitation.recipient_id, caregiver_id=invitation.caregiver_id)
+		db.add(access)
+		db.commit()
+		db.refresh(invitation)
+		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.RECIPIENT_ID: str(recipient_id), Keys.INVITATION_ID: invitation_id}
+
+	def recipient_decline(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
+		try:
+			inv_uuid = uuid.UUID(invitation_id)
+		except Exception:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		user = db.scalar(select(User).where(User.id == recipient_id))
+		invitation = db.scalar(
+			select(Invitation).where(
+				Invitation.id == inv_uuid,
+				Invitation.status == InvitationStatus.PENDING,
+				((Invitation.recipient_id == recipient_id) | (Invitation.invited_email == user.email)),
+			)
+		)
+		if invitation is None:
+			raise ValueError(Errors.USER_NOT_FOUND)
+		invitation.status = InvitationStatus.DECLINED
+		db.commit()
+		return {Keys.MESSAGE: Messages.INVITATION_DECLINED, Keys.RECIPIENT_ID: str(recipient_id), Keys.INVITATION_ID: invitation_id}
 
 	def accept_by_token(self, db: Session, *, token: str) -> Dict[str, Any]:
 		from backend.services.invite_signing import verify_invite

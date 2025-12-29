@@ -42,14 +42,10 @@ def get_access_service() -> AccessService:
 
 
 @recipient_access_router.get(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVERS_LIST)
-async def list_recipient_caregivers(recipientId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    rows = db.scalars(
-        select(RecipientCaregiverAccess).where(RecipientCaregiverAccess.recipient_id == recipientId)
-    ).all()
-    items: List[Dict[str, Any]] = [
-        {Keys.CAREGIVER_ID: r.caregiver_id, Fields.ACCESS_LEVEL: r.access_level} for r in rows
-    ]
-    return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
+async def list_recipient_caregivers(
+    recipientId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
+) -> Dict[str, Any]:
+    return access_service.list_recipient_caregivers(db, recipient_id=recipientId)
 
 
 @recipient_access_router.post(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVER_ASSIGN)
@@ -94,27 +90,20 @@ async def update_caregiver_access(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @caregiver_recipients_router.get(Routes.ROOT, summary=Summaries.CAREGIVER_RECIPIENTS_LIST)
-async def list_caregiver_recipients(caregiverId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    rows = db.scalars(
-        select(RecipientCaregiverAccess).where(RecipientCaregiverAccess.caregiver_id == caregiverId)
-    ).all()
-    items: List[Dict[str, Any]] = [
-        {Keys.RECIPIENT_ID: r.recipient_id, Fields.ACCESS_LEVEL: r.access_level} for r in rows
-    ]
-    return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: items}
+async def list_caregiver_recipients(
+    caregiverId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
+) -> Dict[str, Any]:
+    return access_service.list_caregiver_recipients(db, caregiver_id=caregiverId)
 
 
 @caregiver_recipients_router.get(Routes.RECIPIENT_ID, summary=Summaries.CAREGIVER_RECIPIENT_GET)
-async def get_caregiver_recipient(caregiverId: str, recipientId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    rel = db.scalar(
-        select(RecipientCaregiverAccess).where(
-            RecipientCaregiverAccess.caregiver_id == caregiverId,
-            RecipientCaregiverAccess.recipient_id == recipientId,
-        )
-    )
-    if rel is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
-    return {Keys.CAREGIVER_ID: caregiverId, Keys.RECIPIENT_ID: recipientId, Fields.ACCESS_LEVEL: rel.access_level}
+async def get_caregiver_recipient(
+    caregiverId: str, recipientId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
+) -> Dict[str, Any]:
+    try:
+        return access_service.get_caregiver_recipient(db, caregiver_id=caregiverId, recipient_id=recipientId)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @caregiver_invitations_router.post(
@@ -184,53 +173,23 @@ async def list_recipient_invitations(
 
 
 @recipient_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT)
-async def accept_invitation(recipientId: str, invitationId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def accept_invitation(
+    recipientId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+) -> Dict[str, Any]:
     try:
-        inv_uuid = uuid.UUID(invitationId)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    user = db.scalar(select(User).where(User.id == recipientId))
-    invitation = db.scalar(
-        select(Invitation).where(
-            Invitation.id == inv_uuid,
-            Invitation.status == InvitationStatus.PENDING,
-            ((Invitation.recipient_id == recipientId) | (Invitation.invited_email == user.email)),
-        )
-    )
-    if invitation is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    # Mark accepted
-    invitation.status = InvitationStatus.ACCEPTED
-    # If invited by email, bind user id now
-    if invitation.recipient_id is None:
-        invitation.recipient_id = user.id
-    # Grant default READ access entry
-    access = RecipientCaregiverAccess(recipient_id=invitation.recipient_id, caregiver_id=invitation.caregiver_id)
-    db.add(access)
-    db.commit()
-    db.refresh(invitation)
-    return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.RECIPIENT_ID: recipientId, Keys.INVITATION_ID: invitationId}
+        return invitations_service.recipient_accept(db, recipient_id=recipientId, invitation_id=invitationId)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @recipient_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE)
-async def decline_invitation(recipientId: str, invitationId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def decline_invitation(
+    recipientId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+) -> Dict[str, Any]:
     try:
-        inv_uuid = uuid.UUID(invitationId)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    user = db.scalar(select(User).where(User.id == recipientId))
-    invitation = db.scalar(
-        select(Invitation).where(
-            Invitation.id == inv_uuid,
-            Invitation.status == InvitationStatus.PENDING,
-            ((Invitation.recipient_id == recipientId) | (Invitation.invited_email == user.email)),
-        )
-    )
-    if invitation is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    invitation.status = InvitationStatus.DECLINED
-    db.commit()
-    return {Keys.MESSAGE: Messages.INVITATION_DECLINED, Keys.RECIPIENT_ID: recipientId, Keys.INVITATION_ID: invitationId}
+        return invitations_service.recipient_decline(db, recipient_id=recipientId, invitation_id=invitationId)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @recipient_invitations_router.get(Routes.INVITATION_ID, summary=Summaries.INVITATION_GET)
@@ -259,42 +218,23 @@ async def create_recipient_invitation(
 
 # Caregiver accepts or declines an invitation they received
 @caregiver_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT)
-async def caregiver_accept_invitation(caregiverId: str, invitationId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def caregiver_accept_invitation(
+    caregiverId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+) -> Dict[str, Any]:
     try:
-        inv_uuid = uuid.UUID(invitationId)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    invitation = db.scalar(
-        select(Invitation).where(
-            Invitation.id == inv_uuid, Invitation.caregiver_id == caregiverId, Invitation.status == InvitationStatus.PENDING
-        )
-    )
-    if invitation is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    invitation.status = InvitationStatus.ACCEPTED
-    access = RecipientCaregiverAccess(recipient_id=invitation.recipient_id, caregiver_id=invitation.caregiver_id)
-    db.add(access)
-    db.commit()
-    db.refresh(invitation)
-    return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.CAREGIVER_ID: caregiverId, Keys.INVITATION_ID: invitationId}
+        return invitations_service.caregiver_accept(db, caregiver_id=caregiverId, invitation_id=invitationId)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @caregiver_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE)
-async def caregiver_decline_invitation(caregiverId: str, invitationId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def caregiver_decline_invitation(
+    caregiverId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+) -> Dict[str, Any]:
     try:
-        inv_uuid = uuid.UUID(invitationId)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    invitation = db.scalar(
-        select(Invitation).where(
-            Invitation.id == inv_uuid, Invitation.caregiver_id == caregiverId, Invitation.status == InvitationStatus.PENDING
-        )
-    )
-    if invitation is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
-    invitation.status = InvitationStatus.DECLINED
-    db.commit()
-    return {Keys.MESSAGE: Messages.INVITATION_DECLINED, Keys.CAREGIVER_ID: caregiverId, Keys.INVITATION_ID: invitationId}
+        return invitations_service.caregiver_decline(db, caregiver_id=caregiverId, invitation_id=invitationId)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 # Recipient: list invites sent by them (to caregivers)
