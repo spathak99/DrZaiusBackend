@@ -11,6 +11,7 @@ from backend.services.groups_service import GroupsService, MembershipsService
 from backend.repositories.groups_repo import GroupsRepository
 from backend.repositories.group_memberships_repo import GroupMembershipsRepository
 from backend.utils.pagination import clamp_limit_offset
+from backend.routers.http_errors import status_for_error
 from backend.schemas.groups import (
     GroupCreate,
     GroupUpdate,
@@ -30,15 +31,6 @@ def get_groups_service() -> GroupsService:
 
 def get_memberships_service() -> MembershipsService:
     return MembershipsService(groups_repo=GroupsRepository(), memberships_repo=GroupMembershipsRepository())
-
-
-def _raise(detail: str) -> None:
-    code = status.HTTP_400_BAD_REQUEST
-    if detail == Errors.FORBIDDEN:
-        code = status.HTTP_403_FORBIDDEN
-    if detail in (Errors.GROUP_NOT_FOUND, Errors.USER_NOT_FOUND):
-        code = status.HTTP_404_NOT_FOUND
-    raise HTTPException(status_code=code, detail=detail)
 
 
 class MemberAdd(BaseModel):
@@ -79,7 +71,8 @@ async def get_group(id: str, current_user: User = Depends(get_current_user), db:
     try:
         data = svc.get(db, group_id=id, user_id=str(current_user.id))
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return {"data": GroupDetail(**{
         "id": data.get("id"),
         "name": data.get("name"),
@@ -100,7 +93,8 @@ async def update_group(
     try:
         data = svc.update(db, group_id=id, user_id=str(current_user.id), name=payload.name, description=payload.description)
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return {"data": GroupDetail(**{
         "id": data.get("id"),
         "name": data.get("name"),
@@ -115,7 +109,8 @@ async def delete_group(id: str, current_user: User = Depends(get_current_user), 
     try:
         svc.delete(db, group_id=id, user_id=str(current_user.id))
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return
 
 
@@ -134,7 +129,8 @@ async def list_members(
     try:
         result = svc.list_by_group(db, group_id=id, actor_id=str(current_user.id), limit=limit, offset=offset)
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     items = [MembershipItem(id=r["id"], userId=r["user_id"] if "user_id" in r else r.get("userId") or r[Keys.USER_ID], role=r["role"]) for r in result[Keys.ITEMS]]  # tolerate key naming
     response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
     return {Keys.ITEMS: items}
@@ -151,7 +147,8 @@ async def add_member(
     try:
         svc.add(db, group_id=id, actor_id=str(current_user.id), user_id=payload.userId, role=payload.role or GroupRoles.MEMBER)
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return {"message": Messages.GROUP_MEMBER_ADDED}
 
 
@@ -167,7 +164,8 @@ async def change_role(
     try:
         svc.change_role(db, group_id=id, actor_id=str(current_user.id), user_id=userId, role=payload.role)
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return {"message": Messages.GROUP_MEMBER_ROLE_UPDATED}
 
 
@@ -176,7 +174,8 @@ async def remove_member(id: str, userId: str, current_user: User = Depends(get_c
     try:
         svc.remove(db, group_id=id, actor_id=str(current_user.id), user_id=userId)
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return
 
 
@@ -185,6 +184,7 @@ async def leave_group(id: str, current_user: User = Depends(get_current_user), d
     try:
         svc.leave(db, group_id=id, user_id=str(current_user.id))
     except ValueError as e:
-        _raise(str(e))
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return
 

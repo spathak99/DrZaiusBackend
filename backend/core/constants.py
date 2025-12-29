@@ -324,6 +324,9 @@ class Keys:
     DOWNLOAD: Final[str] = "download"
     EMBEDDINGS: Final[str] = "embeddings"
     REQUEST_ID: Final[str] = "requestId"
+    DB: Final[str] = "db"
+    ENABLE_PIPELINE: Final[str] = "enablePipeline"
+    ENABLE_DLP: Final[str] = "enableDlp"
     # Entity Id keys
     CHAT_ID: Final[str] = "chatId"
     FILE_ID: Final[str] = "fileId"
