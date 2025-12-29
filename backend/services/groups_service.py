@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from backend.core.constants import Errors, Keys, Fields
+from backend.core.constants import Errors, Keys, Fields, GroupRoles
 from backend.db.models import Group, GroupMembership, User
 from backend.repositories.groups_repo import GroupsRepository
 from backend.repositories.group_memberships_repo import GroupMembershipsRepository
@@ -17,7 +17,13 @@ class GroupsService:
 
 	def create(self, db: Session, *, name: str, description: Optional[str], created_by: str) -> Dict[str, Any]:
 		group = self.groups_repo.create(db, name=name, description=description, created_by=created_by)
-		return {Fields.ID: str(group.id), Fields.NAME: group.name, Fields.DESCRIPTION: group.description}
+		return {
+			Fields.ID: str(group.id),
+			Fields.NAME: group.name,
+			Fields.DESCRIPTION: group.description,
+			Fields.CREATED_BY: str(group.created_by),
+			Fields.CREATED_AT: group.created_at,
+		}
 
 	def list_mine(self, db: Session, *, user_id: str) -> List[Dict[str, Any]]:
 		rows = self.groups_repo.list_mine(db, user_id=user_id)
@@ -35,12 +41,18 @@ class GroupsService:
 	def update(self, db: Session, *, group_id: str, user_id: str, name: str, description: Optional[str]) -> Dict[str, Any]:
 		# Only admins can update group
 		role = self.members_repo.get(db, group_id=group_id, user_id=user_id)
-		if role is None or role.role != "admin":
+		if role is None or role.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 		group = self.groups_repo.update_name(db, group_id=group_id, name=name, description=description)
 		if group is None:
 			raise ValueError(Errors.GROUP_NOT_FOUND)
-		return {Fields.ID: str(group.id), Fields.NAME: group.name, Fields.DESCRIPTION: group.description}
+		return {
+			Fields.ID: str(group.id),
+			Fields.NAME: group.name,
+			Fields.DESCRIPTION: group.description,
+			Fields.CREATED_BY: str(group.created_by),
+			Fields.CREATED_AT: group.created_at,
+		}
 
 	def delete(self, db: Session, *, group_id: str, user_id: str) -> None:
 		# Only admins can delete; must be member
@@ -58,7 +70,7 @@ class MembershipsService:
 
 	def _ensure_admin(self, db: Session, *, group_id: str, actor_id: str) -> None:
 		m = self.repo.get(db, group_id=group_id, user_id=actor_id)
-		if m is None or m.role != "admin":
+		if m is None or m.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 
 	def list_by_group(self, db: Session, *, group_id: str, actor_id: str) -> List[Dict[str, Any]]:
@@ -82,7 +94,7 @@ class MembershipsService:
 		# Last-admin guard: ensure at least one admin remains
 		if self.repo.count_admins(db, group_id=group_id) < 1:
 			# revert
-			self.repo.change_role(db, group_id=group_id, user_id=user_id, role="admin")
+			self.repo.change_role(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
@@ -93,9 +105,9 @@ class MembershipsService:
 		if m is None:
 			return
 		self.repo.remove(db, group_id=group_id, user_id=user_id)
-		if m.role == "admin" and self.repo.count_admins(db, group_id=group_id) < 1:
+		if m.role == GroupRoles.ADMIN and self.repo.count_admins(db, group_id=group_id) < 1:
 			# undo by re-adding as admin
-			self.repo.add(db, group_id=group_id, user_id=user_id, role="admin")
+			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
 		return
 
@@ -105,9 +117,9 @@ class MembershipsService:
 			return
 		self.repo.remove(db, group_id=group_id, user_id=user_id)
 		# Last-admin guard if leaver was admin
-		if m.role == "admin" and self.repo.count_admins(db, group_id=group_id) < 1:
+		if m.role == GroupRoles.ADMIN and self.repo.count_admins(db, group_id=group_id) < 1:
 			# re-add as admin (can't leave if last admin)
-			self.repo.add(db, group_id=group_id, user_id=user_id, role="admin")
+			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
 		return
 

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from backend.db.models import Group, GroupMembership, User
+from backend.core.constants import GroupRoles
 
 
 class GroupsRepository:
@@ -14,7 +15,7 @@ class GroupsRepository:
 		db.commit()
 		db.refresh(group)
 		# Creator becomes admin member
-		m = GroupMembership(group_id=group.id, user_id=created_by, role="admin")
+		m = GroupMembership(group_id=group.id, user_id=created_by, role=GroupRoles.ADMIN)
 		db.add(m)
 		db.commit()
 		return group

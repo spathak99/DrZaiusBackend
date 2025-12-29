@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
 from backend.db.models import GroupMembership, Group, User
+from backend.core.constants import GroupRoles
 
 
 class GroupMembershipsRepository:
@@ -27,7 +28,7 @@ class GroupMembershipsRepository:
 			db.scalar(
 				select(func.count()).where(
 					GroupMembership.group_id == group_id,
-					GroupMembership.role == "admin",
+					GroupMembership.role == GroupRoles.ADMIN,
 				)
 			)
 			or 0

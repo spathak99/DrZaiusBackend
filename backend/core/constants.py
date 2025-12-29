@@ -198,6 +198,8 @@ class Messages:
     INCIDENT_REPORTED: Final[str] = "incident reported"
     CAREGIVER_ASSIGNED: Final[str] = "caregiver assigned"
     DLP_REDACTION_SCHEDULED: Final[str] = "redaction_scheduled"
+    GROUP_MEMBER_ADDED: Final[str] = "group member added"
+    GROUP_MEMBER_ROLE_UPDATED: Final[str] = "group member role updated"
 
 
 class Roles:
