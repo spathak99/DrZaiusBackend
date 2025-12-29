@@ -50,6 +50,7 @@ class Prefix:
     GROUP_MEMBERS: Final[str] = "/groups/{groupId}/members"
     RAG: Final[str] = "/rag"
     REDACTION: Final[str] = "/redaction"
+    INVITES: Final[str] = "/invites"
 
 class Routes:
     ROOT: Final[str] = ""
@@ -84,6 +85,7 @@ class Routes:
     VOID: Final[str] = "/void"
     REDEEM: Final[str] = "/redeem"
     SENT: Final[str] = "/sent"
+    ACCEPT_BY_TOKEN: Final[str] = "/accept-by-token"
     # Invitations actions
     INVITATION_ACCEPT: Final[str] = "/{invitationId}/accept"
     INVITATION_DECLINE: Final[str] = "/{invitationId}/decline"

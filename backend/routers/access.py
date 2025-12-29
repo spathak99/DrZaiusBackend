@@ -288,7 +288,7 @@ async def list_recipient_sent_invitations(
 
 
 # Accept by signed token (no auth required)
-@public_invites_router.post("/accept-by-token", summary=Summaries.INVITATION_ACCEPT, response_model=PublicInvitationActionEnvelope)
+@public_invites_router.post(Routes.ACCEPT_BY_TOKEN, summary=Summaries.INVITATION_ACCEPT, response_model=PublicInvitationActionEnvelope)
 async def accept_by_token(
     payload: Dict[str, Any] = Body(default=None),
     db: Session = Depends(get_db),
