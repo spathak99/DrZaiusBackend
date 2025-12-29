@@ -7,6 +7,7 @@ from backend.services.chat_history_service import ChatHistoryService
 from backend.services.ingestion_service import IngestionService
 from backend.services.dlp_service import DlpService
 from backend.services.invitations_service import InvitationsService
+from backend.services.access_service import AccessService
 
 __all__ = [
     "ChatsService",
@@ -18,6 +19,7 @@ __all__ = [
     "IngestionService",
     "DlpService",
     "InvitationsService",
+    "AccessService",
 ]
 
 

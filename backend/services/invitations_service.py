@@ -14,7 +14,7 @@ from backend.core.constants import (
 	DeepLink,
 	Errors,
 )
-from backend.db.models import User, Invitation
+from backend.db.models import User, Invitation, RecipientCaregiverAccess
 from backend.repositories.invitations_repo import InvitationsRepository
 from backend.services.invite_signing import sign_invite
 from backend.services.email_service import send_invite_email
@@ -177,7 +177,11 @@ class InvitationsService:
 			raise ValueError(Errors.RECIPIENT_NOT_REGISTERED)
 		if role == Roles.CAREGIVER and inv.caregiver_id is None:
 			raise ValueError(Errors.CAREGIVER_NOT_REGISTERED)
+		# Accept and create access edge
 		self.repo.set_status(db, inv, InvitationStatus.ACCEPTED)
+		access = RecipientCaregiverAccess(recipient_id=inv.recipient_id, caregiver_id=inv.caregiver_id)
+		db.add(access)
+		db.commit()
 		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.INVITATION_ID: str(inv.id)}
 
 
