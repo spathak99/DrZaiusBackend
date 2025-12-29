@@ -3,6 +3,7 @@ from typing import Dict, Any
 
 from backend.core.settings import get_settings
 from backend.core.constants import Keys
+from backend.core.constants import Defaults
 
 
 class IngestionService:
@@ -23,7 +24,9 @@ class IngestionService:
         For now, we return a mock jobId and the intended target locations.
         """
         settings = get_settings()
-        object_name = f"uploads/{user_id}/{uuid.uuid4()}-{file_name}"
+        # Use a centralized prefix to avoid string literals
+        prefix = getattr(Defaults, "UPLOADS_PREFIX", "uploads")
+        object_name = f"{prefix}/{user_id}/{uuid.uuid4()}-{file_name}"
         job_id = str(uuid.uuid4())
         return {
             Keys.JOB_ID: job_id,

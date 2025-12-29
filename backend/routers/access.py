@@ -4,6 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys
 from backend.schemas import CaregiverAccessUpdate, RecipientInvitationCreate
+from backend.schemas.access import (
+    RecipientCaregiversEnvelope,
+    CaregiverRecipientsEnvelope,
+    CaregiverRecipientGetResponse,
+    AccessMutateEnvelope,
+)
 from backend.schemas.invitation import (
     InvitationCreatedEnvelope,
     CaregiverInvitesEnvelope,
@@ -41,14 +47,14 @@ def get_access_service() -> AccessService:
 
 
 
-@recipient_access_router.get(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVERS_LIST)
+@recipient_access_router.get(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVERS_LIST, response_model=RecipientCaregiversEnvelope)
 async def list_recipient_caregivers(
     recipientId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
 ) -> Dict[str, Any]:
     return access_service.list_recipient_caregivers(db, recipient_id=recipientId)
 
 
-@recipient_access_router.post(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVER_ASSIGN)
+@recipient_access_router.post(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVER_ASSIGN, response_model=AccessMutateEnvelope)
 async def assign_caregiver(
     recipientId: str,
     payload: Dict[str, Any] = Body(default=None),
@@ -76,7 +82,7 @@ async def revoke_caregiver_access(
     return
 
 
-@recipient_access_router.put(Routes.CAREGIVER_ID, summary=Summaries.RECIPIENT_CAREGIVER_UPDATE)
+@recipient_access_router.put(Routes.CAREGIVER_ID, summary=Summaries.RECIPIENT_CAREGIVER_UPDATE, response_model=AccessMutateEnvelope)
 async def update_caregiver_access(
     recipientId: str,
     caregiverId: str,
@@ -89,14 +95,14 @@ async def update_caregiver_access(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
-@caregiver_recipients_router.get(Routes.ROOT, summary=Summaries.CAREGIVER_RECIPIENTS_LIST)
+@caregiver_recipients_router.get(Routes.ROOT, summary=Summaries.CAREGIVER_RECIPIENTS_LIST, response_model=CaregiverRecipientsEnvelope)
 async def list_caregiver_recipients(
     caregiverId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
 ) -> Dict[str, Any]:
     return access_service.list_caregiver_recipients(db, caregiver_id=caregiverId)
 
 
-@caregiver_recipients_router.get(Routes.RECIPIENT_ID, summary=Summaries.CAREGIVER_RECIPIENT_GET)
+@caregiver_recipients_router.get(Routes.RECIPIENT_ID, summary=Summaries.CAREGIVER_RECIPIENT_GET, response_model=CaregiverRecipientGetResponse)
 async def get_caregiver_recipient(
     caregiverId: str, recipientId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
 ) -> Dict[str, Any]:

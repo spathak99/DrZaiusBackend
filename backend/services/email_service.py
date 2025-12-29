@@ -16,8 +16,8 @@ def send_invite_email(to_email: str, accept_url: Optional[str]) -> None:
     """
     settings = get_settings()
     subject = Email.SUBJECT_INVITE
-    text_body = f"You've been invited. Accept here: {accept_url or '(link unavailable)'}"
-    html_body = f"<p>You've been invited.</p><p><a href=\"{accept_url or '#'}\">Tap to accept</a></p>"
+    text_body = f"{Email.BODY_INVITED_PLAIN_PREFIX} {accept_url or Email.LINK_UNAVAILABLE}"
+    html_body = f"{Email.BODY_INVITED_HTML_PREFIX}<p><a href=\"{accept_url or Email.HREF_FALLBACK}\">{Email.HTML_LINK_LABEL}</a></p>"
 
     if not settings.sendgrid_api_key:
         logger.info("[email] To: %s | %s", to_email, text_body)
@@ -37,7 +37,7 @@ def send_invite_email(to_email: str, accept_url: Optional[str]) -> None:
         data=json.dumps(data).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {settings.sendgrid_api_key}",
-            "Content-Type": "application/json",
+            "Content-Type": MimeTypes.APPLICATION_JSON,
         },
         method="POST",
     )

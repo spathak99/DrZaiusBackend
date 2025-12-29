@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from backend.core.constants import Keys, Messages
 
 
 class DlpService:
@@ -7,6 +8,6 @@ class DlpService:
         Stub for a future GCP DLP integration. Returns a mock response indicating
         that redaction would be performed on the provided GCS object.
         """
-        return {"bucket": bucket, "object": object_name, "status": "redaction_scheduled"}
+        return {Keys.BUCKET: bucket, Keys.OBJECT: object_name, Keys.STATUS: Messages.DLP_REDACTION_SCHEDULED}
 
 

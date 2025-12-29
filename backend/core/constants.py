@@ -197,6 +197,7 @@ class Messages:
     RISK_ASSESSMENT_STARTED: Final[str] = "risk assessment started"
     INCIDENT_REPORTED: Final[str] = "incident reported"
     CAREGIVER_ASSIGNED: Final[str] = "caregiver assigned"
+    DLP_REDACTION_SCHEDULED: Final[str] = "redaction_scheduled"
 
 
 class Roles:
@@ -217,6 +218,8 @@ class AccessLevel:
 
 
 class Auth:
+    JWT_HEADER_ALG: Final[str] = "alg"
+    JWT_HEADER_TYP: Final[str] = "typ"
     JWT_ALG_HS256: Final[str] = "HS256"
     JWT_TYP_JWT: Final[str] = "JWT"
     JWT_CLAIM_SUB: Final[str] = "sub"
@@ -249,7 +252,8 @@ class Errors:
 
 
 class Defaults:
-    pass
+    # Storage and path defaults
+    UPLOADS_PREFIX: Final[str] = "uploads"
 
 class Fields:
     ID: Final[str] = "id"
@@ -336,6 +340,7 @@ class DocKeys:
 class MimeTypes:
     APPLICATION_PDF: Final[str] = "application/pdf"
     APPLICATION_OCTET_STREAM: Final[str] = "application/octet-stream"
+    APPLICATION_JSON: Final[str] = "application/json"
     TEXT_PLAIN: Final[str] = "text/plain"
     TEXT_HTML: Final[str] = "text/html"
 
@@ -382,6 +387,11 @@ class DeepLink:
 
 class Email:
     SUBJECT_INVITE: Final[str] = "You have a caregiver invitation"
+    BODY_INVITED_PLAIN_PREFIX: Final[str] = "You've been invited. Accept here:"
+    BODY_INVITED_HTML_PREFIX: Final[str] = "<p>You've been invited.</p>"
+    HTML_LINK_LABEL: Final[str] = "Tap to accept"
+    LINK_UNAVAILABLE: Final[str] = "(link unavailable)"
+    HREF_FALLBACK: Final[str] = "#"
 
 
 class Urls:

@@ -55,7 +55,7 @@ def issue_token(user_id: str, now: Optional[int] = None) -> str:
     secret = settings.auth_secret.encode("utf-8")
     iat = int(now or time.time())
     exp = iat + settings.auth_token_exp_minutes * 60
-    header = {"alg": AuthConst.JWT_ALG_HS256, "typ": AuthConst.JWT_TYP_JWT}
+    header = {AuthConst.JWT_HEADER_ALG: AuthConst.JWT_ALG_HS256, AuthConst.JWT_HEADER_TYP: AuthConst.JWT_TYP_JWT}
     payload = {AuthConst.JWT_CLAIM_SUB: user_id, AuthConst.JWT_CLAIM_IAT: iat, AuthConst.JWT_CLAIM_EXP: exp}
     encoded_header = _b64url_json(header)
     encoded_payload = _b64url_json(payload)
@@ -74,7 +74,7 @@ def verify_token(token: str) -> Dict[str, Any]:
             raise ValueError(Errors.MALFORMED_TOKEN)
         encoded_header, encoded_payload, encoded_sig = parts
         header = json.loads(_b64url_decode(encoded_header).decode("utf-8"))
-        if header.get("alg") != AuthConst.JWT_ALG_HS256 or header.get("typ") != AuthConst.JWT_TYP_JWT:
+        if header.get(AuthConst.JWT_HEADER_ALG) != AuthConst.JWT_ALG_HS256 or header.get(AuthConst.JWT_HEADER_TYP) != AuthConst.JWT_TYP_JWT:
             raise ValueError(Errors.MALFORMED_TOKEN)
         payload = json.loads(_b64url_decode(encoded_payload).decode("utf-8"))
         signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
