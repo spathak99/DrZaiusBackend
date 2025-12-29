@@ -4,6 +4,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys
 from backend.schemas import CaregiverAccessUpdate, RecipientInvitationCreate
+from backend.schemas.invitation import (
+    InvitationCreatedEnvelope,
+    CaregiverInvitesEnvelope,
+    RecipientInvitesEnvelope,
+)
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
 from backend.db.models import Invitation, User, RecipientCaregiverAccess
@@ -144,7 +149,12 @@ async def get_caregiver_recipient(caregiverId: str, recipientId: str, db: Sessio
     return {Keys.CAREGIVER_ID: caregiverId, Keys.RECIPIENT_ID: recipientId, Fields.ACCESS_LEVEL: rel.access_level}
 
 
-@caregiver_invitations_router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.INVITATION_SEND)
+@caregiver_invitations_router.post(
+    Routes.ROOT,
+    status_code=status.HTTP_201_CREATED,
+    summary=Summaries.INVITATION_SEND,
+    response_model=InvitationCreatedEnvelope,
+)
 async def send_invitation(
     caregiverId: str,
     payload: RecipientInvitationCreate = Body(default=None),
@@ -200,7 +210,9 @@ async def send_invitation(
     }
 
 
-@caregiver_invitations_router.get(Routes.ROOT, summary=Summaries.INVITATIONS_SENT_LIST)
+@caregiver_invitations_router.get(
+    Routes.ROOT, summary=Summaries.INVITATIONS_SENT_LIST, response_model=CaregiverInvitesEnvelope
+)
 async def list_sent_invitations(caregiverId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     caregiver = db.scalar(select(User).where(User.id == caregiverId))
     if caregiver is None:
@@ -261,7 +273,9 @@ async def cancel_invitation(caregiverId: str, invitationId: str, db: Session = D
     return
 
 
-@recipient_invitations_router.get(Routes.ROOT, summary=Summaries.INVITATIONS_RECEIVED_LIST)
+@recipient_invitations_router.get(
+    Routes.ROOT, summary=Summaries.INVITATIONS_RECEIVED_LIST, response_model=RecipientInvitesEnvelope
+)
 async def list_recipient_invitations(recipientId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     # Validate recipient
     recipient = db.scalar(select(User).where(User.id == recipientId))
@@ -357,7 +371,12 @@ async def get_recipient_invitation(recipientId: str, invitationId: str) -> Dict[
     return {Keys.RECIPIENT_ID: recipientId, Keys.INVITATION_ID: invitationId, Keys.STATUS: InvitationStatus.PENDING}
 
 
-@recipient_invitations_router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.INVITATION_SEND)
+@recipient_invitations_router.post(
+    Routes.ROOT,
+    status_code=status.HTTP_201_CREATED,
+    summary=Summaries.INVITATION_SEND,
+    response_model=InvitationCreatedEnvelope,
+)
 async def create_recipient_invitation(
     recipientId: str,
     payload: RecipientInvitationCreate = Body(default=None),
@@ -454,7 +473,9 @@ async def caregiver_decline_invitation(caregiverId: str, invitationId: str, db: 
 
 
 # Recipient: list invites sent by them (to caregivers)
-@recipient_invitations_router.get("/sent", summary=Summaries.INVITATIONS_SENT_LIST)
+@recipient_invitations_router.get(
+    "/sent", summary=Summaries.INVITATIONS_SENT_LIST, response_model=RecipientInvitesEnvelope
+)
 async def list_recipient_sent_invitations(recipientId: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
     # Validate recipient
     recipient = db.scalar(select(User).where(User.id == recipientId))
