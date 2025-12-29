@@ -50,6 +50,18 @@ def get_invitations_service() -> InvitationsService:
 def get_access_service() -> AccessService:
     return AccessService(repo=AccessRepository())
 
+def _err(detail: str) -> str:
+    # Pass through only known error codes; default to invalid_payload
+    known = {
+        Errors.USER_NOT_FOUND,
+        Errors.RECIPIENT_NOT_FOUND,
+        Errors.INVALID_PAYLOAD,
+        Errors.RECIPIENT_NOT_REGISTERED,
+        Errors.CAREGIVER_NOT_REGISTERED,
+        Errors.FORBIDDEN,
+    }
+    return detail if detail in known else Errors.INVALID_PAYLOAD
+
 
 
 @recipient_access_router.get(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVERS_LIST, response_model=RecipientCaregiversEnvelope)
@@ -73,7 +85,7 @@ async def assign_caregiver(
     try:
         return access_service.assign(db, recipient_id=recipientId, caregiver_id=caregiver_id, access_level=access_level)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
 
 
 @recipient_access_router.delete(Routes.CAREGIVER_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.RECIPIENT_CAREGIVER_REVOKE)
@@ -98,7 +110,7 @@ async def update_caregiver_access(
     try:
         return access_service.update(db, recipient_id=recipientId, caregiver_id=caregiverId, access_level=payload.access_level)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
 
 @caregiver_recipients_router.get(Routes.ROOT, summary=Summaries.CAREGIVER_RECIPIENTS_LIST, response_model=CaregiverRecipientsEnvelope)
 async def list_caregiver_recipients(
@@ -114,7 +126,7 @@ async def get_caregiver_recipient(
     try:
         return access_service.get_caregiver_recipient(db, caregiver_id=caregiverId, recipient_id=recipientId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
 
 
 @caregiver_invitations_router.post(
@@ -132,7 +144,7 @@ async def send_invitation(
     try:
         data = invitations_service.send_from_caregiver(db, caregiver_id=caregiverId, email=str(payload.email))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
     return {Keys.MESSAGE: Messages.INVITATION_SENT, Keys.DATA: data}
 
 
@@ -145,7 +157,7 @@ async def list_sent_invitations(
     try:
         items = invitations_service.list_for_caregiver(db, caregiver_id=caregiverId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
     return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: items}
 
 
@@ -179,7 +191,7 @@ async def list_recipient_invitations(
     try:
         items = invitations_service.list_for_recipient(db, recipient_id=recipientId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
     return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
 
 
@@ -190,7 +202,7 @@ async def accept_invitation(
     try:
         return invitations_service.recipient_accept(db, recipient_id=recipientId, invitation_id=invitationId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
 
 
 @recipient_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE, response_model=RecipientInvitationActionEnvelope)
@@ -200,7 +212,7 @@ async def decline_invitation(
     try:
         return invitations_service.recipient_decline(db, recipient_id=recipientId, invitation_id=invitationId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
 
 
 @recipient_invitations_router.get(Routes.INVITATION_ID, summary=Summaries.INVITATION_GET)
@@ -223,7 +235,7 @@ async def create_recipient_invitation(
     try:
         data = invitations_service.send_from_recipient(db, recipient_id=recipientId, email=str(payload.email))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
     return {Keys.MESSAGE: Messages.INVITATION_SENT, Keys.DATA: data}
 
 
@@ -235,7 +247,7 @@ async def caregiver_accept_invitation(
     try:
         return invitations_service.caregiver_accept(db, caregiver_id=caregiverId, invitation_id=invitationId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
 
 
 @caregiver_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE, response_model=CaregiverInvitationActionEnvelope)
@@ -245,7 +257,7 @@ async def caregiver_decline_invitation(
     try:
         return invitations_service.caregiver_decline(db, caregiver_id=caregiverId, invitation_id=invitationId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
 
 
 # Recipient: list invites sent by them (to caregivers)
@@ -258,7 +270,7 @@ async def list_recipient_sent_invitations(
     try:
         items = invitations_service.list_sent_by_recipient(db, recipient_id=recipientId)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
     return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
 
 
@@ -279,5 +291,5 @@ async def accept_by_token(
             code = status.HTTP_404_NOT_FOUND
         if detail in (Errors.RECIPIENT_NOT_REGISTERED, Errors.CAREGIVER_NOT_REGISTERED,):
             code = status.HTTP_409_CONFLICT
-        raise HTTPException(status_code=code, detail=detail)
+        raise HTTPException(status_code=code, detail=_err(detail))
 
