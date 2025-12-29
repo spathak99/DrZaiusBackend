@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from datetime import datetime, timezone
 
 from backend.db.models import GroupPaymentCode
@@ -22,6 +22,20 @@ class PaymentCodesRepository:
 
 	def list_for_group(self, db: Session, *, group_id: str) -> List[GroupPaymentCode]:
 		return db.scalars(select(GroupPaymentCode).where(GroupPaymentCode.group_id == group_id)).all()
+
+	def count_for_group(self, db: Session, *, group_id: str) -> int:
+		return int(
+			db.scalar(select(func.count()).select_from(GroupPaymentCode).where(GroupPaymentCode.group_id == group_id)) or 0
+		)
+
+	def list_for_group_paginated(self, db: Session, *, group_id: str, limit: int, offset: int) -> List[GroupPaymentCode]:
+		return db.scalars(
+			select(GroupPaymentCode)
+			.where(GroupPaymentCode.group_id == group_id)
+			.order_by(GroupPaymentCode.created_at)
+			.limit(limit)
+			.offset(offset)
+		).all()
 
 	def void(self, db: Session, *, row: GroupPaymentCode) -> GroupPaymentCode:
 		row.status = PaymentCodeStatus.EXPIRED

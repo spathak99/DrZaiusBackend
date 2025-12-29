@@ -45,10 +45,17 @@ class PaymentCodesService:
 		self.logger.info(LogEvents.PAYMENT_CODE_CREATED, extra={"groupId": group_id, "actorId": actor_id, "code": code})
 		return {Keys.CODE: row.code, Keys.STATUS: row.status, Keys.EXPIRES_AT: row.expires_at}
 
-	def list_codes(self, db: Session, *, group_id: str, actor_id: str) -> List[Dict[str, Any]]:
+	def list_codes(self, db: Session, *, group_id: str, actor_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
-		rows = self.repo.list_for_group(db, group_id=group_id)
-		return [{Keys.CODE: r.code, Keys.STATUS: r.status, Keys.EXPIRES_AT: r.expires_at, Keys.REDEEMED_BY: str(r.redeemed_by) if r.redeemed_by else None} for r in rows]
+		# pagination (optional)
+		if limit is not None and offset is not None:
+			total = self.repo.count_for_group(db, group_id=group_id)
+			rows = self.repo.list_for_group_paginated(db, group_id=group_id, limit=limit, offset=offset)
+		else:
+			rows = self.repo.list_for_group(db, group_id=group_id)
+			total = len(rows)
+		items = [{Keys.CODE: r.code, Keys.STATUS: r.status, Keys.EXPIRES_AT: r.expires_at, Keys.REDEEMED_BY: str(r.redeemed_by) if r.redeemed_by else None} for r in rows]
+		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def void_code(self, db: Session, *, group_id: str, actor_id: str, code: str) -> Dict[str, Any]:
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)

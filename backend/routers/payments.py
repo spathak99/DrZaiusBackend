@@ -18,6 +18,7 @@ from backend.schemas.payments import (
 	CodeListItem,
 )
 from backend.routers.http_errors import status_for_error
+from backend.utils.pagination import clamp_limit_offset
 
 router = APIRouter(tags=[Tags.GROUPS])
 
@@ -43,15 +44,22 @@ async def create_code(
 
 @router.get(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodesListEnvelope, summary=Summaries.PAYMENT_CODES_LIST)
 async def list_codes(
-	id: str, response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service)
+	id: str,
+	response: Response,
+	limit: int = 50,
+	offset: int = 0,
+	current_user: User = Depends(get_current_user),
+	db: Session = Depends(get_db),
+	payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service),
 ) -> Dict[str, Any]:
+	limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
 	try:
-		rows = payment_codes_service.list_codes(db, group_id=id, actor_id=str(current_user.id))
+		result = payment_codes_service.list_codes(db, group_id=id, actor_id=str(current_user.id), limit=limit, offset=offset)
 	except ValueError as e:
 		detail = str(e)
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)
-	items = [CodeListItem(code=r.get(Keys.CODE), status=r.get(Keys.STATUS), expires_at=r.get(Keys.EXPIRES_AT), redeemed_by=r.get(Keys.REDEEMED_BY)) for r in rows]
-	response.headers[Headers.TOTAL_COUNT] = str(len(items))
+	items = [CodeListItem(code=r.get(Keys.CODE), status=r.get(Keys.STATUS), expires_at=r.get(Keys.EXPIRES_AT), redeemed_by=r.get(Keys.REDEEMED_BY)) for r in result[Keys.ITEMS]]
+	response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
 	return {"items": items}
 
 

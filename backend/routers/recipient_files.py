@@ -15,9 +15,16 @@ from backend.schemas.redaction import RedactUploadResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix=Prefix.RECIPIENT_FILES, tags=[Tags.RECIPIENT_DATA], dependencies=[Depends(get_current_user)])
-docs = DocsService()
-ingestion = IngestionService()
-dlp = DlpService()
+
+def get_docs_service() -> DocsService:
+	return DocsService()
+
+def get_ingestion_service() -> IngestionService:
+	return IngestionService()
+
+def get_dlp_service() -> DlpService:
+	return DlpService()
+
 settings = get_settings()
 
 def _assert_can_access_recipient(db: Session, recipient_id: str, current_user: User) -> None:
@@ -36,7 +43,12 @@ def _assert_can_access_recipient(db: Session, recipient_id: str, current_user: U
 
 @router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.FILE_UPLOAD)
 async def upload_recipient_file(
-    id: str, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    docs: DocsService = Depends(get_docs_service),
+    ingestion: IngestionService = Depends(get_ingestion_service),
 ) -> Dict[str, Any]:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
@@ -71,7 +83,12 @@ async def upload_recipient_file(
 
 
 @router.get(Routes.ROOT, summary=Summaries.RECIPIENT_FILES_LIST)
-async def list_recipient_files(id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
+async def list_recipient_files(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    docs: DocsService = Depends(get_docs_service),
+) -> Dict[str, Any]:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
@@ -81,7 +98,13 @@ async def list_recipient_files(id: str, db: Session = Depends(get_db), current_u
 
 
 @router.get(Routes.FILE_ID, summary=Summaries.FILE_DOWNLOAD)
-async def get_recipient_file(id: str, fileId: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
+async def get_recipient_file(
+    id: str,
+    fileId: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    docs: DocsService = Depends(get_docs_service),
+) -> Dict[str, Any]:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
@@ -91,7 +114,13 @@ async def get_recipient_file(id: str, fileId: str, db: Session = Depends(get_db)
 
 
 @router.delete(Routes.FILE_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.FILE_DELETE)
-async def delete_recipient_file(id: str, fileId: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> None:
+async def delete_recipient_file(
+    id: str,
+    fileId: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    docs: DocsService = Depends(get_docs_service),
+) -> None:
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
         raise HTTPException(status_code=404, detail=Errors.RECIPIENT_NOT_FOUND)
@@ -106,6 +135,9 @@ async def redact_and_upload_recipient_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    dlp: DlpService = Depends(get_dlp_service),
+    ingestion: IngestionService = Depends(get_ingestion_service),
+    docs: DocsService = Depends(get_docs_service),
 ) -> Dict[str, Any]:
     """
     MVP endpoint:

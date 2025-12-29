@@ -107,7 +107,7 @@ class InvitationsService:
 		logger.info(LogEvents.INVITATION_SENT if hasattr(LogEvents, "INVITATION_SENT") else "invitation_sent", extra={"invitationId": str(inv.id), "senderRole": Roles.RECIPIENT, "senderId": str(recipient.id)})
 		return self._map_created(inv, recipient, accept_url)
 
-	def list_for_caregiver(self, db: Session, *, caregiver_id: str) -> List[Dict[str, Any]]:
+	def list_for_caregiver(self, db: Session, *, caregiver_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
 		caregiver = db.scalar(select(User).where(User.id == caregiver_id))
 		if caregiver is None:
 			raise ValueError(Errors.USER_NOT_FOUND)
@@ -118,9 +118,12 @@ class InvitationsService:
 				select(User).where(User.id == (inv.caregiver_id if inv.sent_by == Roles.CAREGIVER else inv.recipient_id))
 			)
 			items.append(self._map_list_item(inv, other))
-		return items
+		total = len(items)
+		if limit is not None and offset is not None:
+			items = items[offset : offset + limit]
+		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
-	def list_for_recipient(self, db: Session, *, recipient_id: str) -> List[Dict[str, Any]]:
+	def list_for_recipient(self, db: Session, *, recipient_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
 		recipient = db.scalar(select(User).where(User.id == recipient_id))
 		if recipient is None:
 			raise ValueError(Errors.RECIPIENT_NOT_FOUND)
@@ -131,9 +134,12 @@ class InvitationsService:
 				select(User).where(User.id == (inv.caregiver_id if inv.sent_by == Roles.CAREGIVER else inv.recipient_id))
 			)
 			items.append(self._map_list_item(inv, other))
-		return items
+		total = len(items)
+		if limit is not None and offset is not None:
+			items = items[offset : offset + limit]
+		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
-	def list_sent_by_recipient(self, db: Session, *, recipient_id: str) -> List[Dict[str, Any]]:
+	def list_sent_by_recipient(self, db: Session, *, recipient_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
 		recipient = db.scalar(select(User).where(User.id == recipient_id))
 		if recipient is None:
 			raise ValueError(Errors.RECIPIENT_NOT_FOUND)
@@ -144,7 +150,11 @@ class InvitationsService:
 				Invitation.sent_by == Roles.RECIPIENT,
 			)
 		).all()
-		return [self._map_list_item(i, recipient) for i in invs]
+		items = [self._map_list_item(i, recipient) for i in invs]
+		total = len(items)
+		if limit is not None and offset is not None:
+			items = items[offset : offset + limit]
+		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def caregiver_accept(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
 		try:

@@ -156,16 +156,21 @@ async def send_invitation(
     Routes.ROOT, summary=Summaries.INVITATIONS_SENT_LIST, response_model=CaregiverInvitesEnvelope
 )
 async def list_sent_invitations(
-    caregiverId: str, response: Response, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+    caregiverId: str,
+    response: Response,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    invitations_service: InvitationsService = Depends(get_invitations_service),
 ) -> Dict[str, Any]:
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
     try:
-        items = invitations_service.list_for_caregiver(db, caregiver_id=caregiverId)
+        result = invitations_service.list_for_caregiver(db, caregiver_id=caregiverId, limit=limit, offset=offset)
     except ValueError as e:
         detail = _err(str(e))
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    from backend.core.constants import Headers as _Headers
-    response.headers[_Headers.TOTAL_COUNT] = str(len(items))
-    return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: items}
+    response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, 0))
+    return {Keys.CAREGIVER_ID: caregiverId, Keys.ITEMS: result[Keys.ITEMS]}
 
 
 @caregiver_invitations_router.delete(Routes.INVITATION_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.INVITATION_CANCEL)
@@ -193,16 +198,21 @@ async def cancel_invitation(caregiverId: str, invitationId: str, db: Session = D
     Routes.ROOT, summary=Summaries.INVITATIONS_RECEIVED_LIST, response_model=RecipientInvitesEnvelope
 )
 async def list_recipient_invitations(
-    recipientId: str, response: Response, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+    recipientId: str,
+    response: Response,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    invitations_service: InvitationsService = Depends(get_invitations_service),
 ) -> Dict[str, Any]:
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
     try:
-        items = invitations_service.list_for_recipient(db, recipient_id=recipientId)
+        result = invitations_service.list_for_recipient(db, recipient_id=recipientId, limit=limit, offset=offset)
     except ValueError as e:
         detail = _err(str(e))
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    from backend.core.constants import Headers as _Headers
-    response.headers[_Headers.TOTAL_COUNT] = str(len(items))
-    return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
+    response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, 0))
+    return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: result[Keys.ITEMS]}
 
 
 @recipient_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT, response_model=RecipientInvitationActionEnvelope)
@@ -277,14 +287,20 @@ async def caregiver_decline_invitation(
 # Recipient: list invites sent by them (to caregivers)
 @recipient_invitations_router.get(Routes.SENT, summary=Summaries.INVITATIONS_SENT_LIST, response_model=RecipientInvitesEnvelope)
 async def list_recipient_sent_invitations(
-    recipientId: str, response: Response, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+    recipientId: str,
+    response: Response,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    invitations_service: InvitationsService = Depends(get_invitations_service),
 ) -> Dict[str, Any]:
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
     try:
-        items = invitations_service.list_sent_by_recipient(db, recipient_id=recipientId)
+        result = invitations_service.list_sent_by_recipient(db, recipient_id=recipientId, limit=limit, offset=offset)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
-    response.headers[Headers.TOTAL_COUNT] = str(len(items))
-    return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
+    response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, 0))
+    return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: result[Keys.ITEMS]}
 
 
 # Accept by signed token (no auth required)
