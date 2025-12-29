@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from typing import Any, Dict, List, Optional
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -22,6 +23,9 @@ from backend.services.email_service import send_invite_email
 import uuid
 
 
+logger = logging.getLogger(__name__)
+
+
 class InvitationsService:
 	def __init__(self, repo: InvitationsRepo | None = None) -> None:
 		self.repo: InvitationsRepo = repo or InvitationsRepository()
@@ -40,6 +44,35 @@ class InvitationsService:
 		except Exception:
 			return None
 
+	def _map_list_item(self, inv: Invitation, other: Optional[User]) -> Dict[str, Any]:
+		return {
+			Fields.ID: str(inv.id),
+			Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
+			Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
+			Keys.STATUS: inv.status,
+			Keys.SENT_BY: inv.sent_by,
+			**self._sender(other),
+		}
+
+	def _map_created(self, inv: Invitation, sender: Optional[User], accept_url: Optional[str]) -> Dict[str, Any]:
+		return {
+			Fields.ID: str(inv.id),
+			Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
+			Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
+			Keys.STATUS: inv.status,
+			Keys.SENT_BY: inv.sent_by,
+			**self._sender(sender),
+			Keys.ACCEPT_URL: accept_url,
+		}
+
+	def _map_action(self, message: str, *, invitation_id: str, caregiver_id: Optional[str] = None, recipient_id: Optional[str] = None) -> Dict[str, Any]:
+		data: Dict[str, Any] = {Keys.MESSAGE: message, Keys.INVITATION_ID: invitation_id}
+		if caregiver_id is not None:
+			data[Keys.CAREGIVER_ID] = caregiver_id
+		if recipient_id is not None:
+			data[Keys.RECIPIENT_ID] = recipient_id
+		return data
+
 	def send_from_caregiver(self, db: Session, *, caregiver_id: str, email: str) -> Dict[str, Any]:
 		caregiver = db.scalar(select(User).where(User.id == caregiver_id))
 		if caregiver is None:
@@ -54,15 +87,7 @@ class InvitationsService:
 		)
 		accept_url = self._accept_url({"invitationId": str(inv.id), "role": Roles.RECIPIENT, "recipientId": str(recipient.id) if recipient else None})
 		send_invite_email(to_email=str(email), accept_url=accept_url)
-		return {
-			Fields.ID: str(inv.id),
-			Keys.CAREGIVER_ID: str(inv.caregiver_id),
-			Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
-			Keys.STATUS: inv.status,
-			Keys.SENT_BY: inv.sent_by,
-			**self._sender(caregiver),
-			Keys.ACCEPT_URL: accept_url,
-		}
+		return self._map_created(inv, caregiver, accept_url)
 
 	def send_from_recipient(self, db: Session, *, recipient_id: str, email: str) -> Dict[str, Any]:
 		recipient = db.scalar(select(User).where(User.id == recipient_id))
@@ -78,15 +103,7 @@ class InvitationsService:
 		)
 		accept_url = self._accept_url({"invitationId": str(inv.id), "role": Roles.CAREGIVER, "caregiverId": str(caregiver.id) if caregiver else None})
 		send_invite_email(to_email=str(email), accept_url=accept_url)
-		return {
-			Fields.ID: str(inv.id),
-			Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
-			Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
-			Keys.STATUS: inv.status,
-			Keys.SENT_BY: inv.sent_by,
-			**self._sender(recipient),
-			Keys.ACCEPT_URL: accept_url,
-		}
+		return self._map_created(inv, recipient, accept_url)
 
 	def list_for_caregiver(self, db: Session, *, caregiver_id: str) -> List[Dict[str, Any]]:
 		caregiver = db.scalar(select(User).where(User.id == caregiver_id))
@@ -98,16 +115,7 @@ class InvitationsService:
 			other = db.scalar(
 				select(User).where(User.id == (inv.caregiver_id if inv.sent_by == Roles.CAREGIVER else inv.recipient_id))
 			)
-			items.append(
-				{
-					Fields.ID: str(inv.id),
-					Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
-					Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
-					Keys.STATUS: inv.status,
-					Keys.SENT_BY: inv.sent_by,
-					**self._sender(other),
-				}
-			)
+			items.append(self._map_list_item(inv, other))
 		return items
 
 	def list_for_recipient(self, db: Session, *, recipient_id: str) -> List[Dict[str, Any]]:
@@ -120,16 +128,7 @@ class InvitationsService:
 			other = db.scalar(
 				select(User).where(User.id == (inv.caregiver_id if inv.sent_by == Roles.CAREGIVER else inv.recipient_id))
 			)
-			items.append(
-				{
-					Fields.ID: str(inv.id),
-					Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
-					Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
-					Keys.STATUS: inv.status,
-					Keys.SENT_BY: inv.sent_by,
-					**self._sender(other),
-				}
-			)
+			items.append(self._map_list_item(inv, other))
 		return items
 
 	def list_sent_by_recipient(self, db: Session, *, recipient_id: str) -> List[Dict[str, Any]]:
@@ -143,17 +142,7 @@ class InvitationsService:
 				Invitation.sent_by == Roles.RECIPIENT,
 			)
 		).all()
-		return [
-			{
-				Fields.ID: str(i.id),
-				Keys.CAREGIVER_ID: str(i.caregiver_id),
-				Keys.RECIPIENT_ID: str(i.recipient_id),
-				Keys.STATUS: i.status,
-				Keys.SENT_BY: i.sent_by,
-				**self._sender(recipient),
-			}
-			for i in invs
-		]
+		return [self._map_list_item(i, recipient) for i in invs]
 
 	def caregiver_accept(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
 		try:
@@ -172,7 +161,8 @@ class InvitationsService:
 		db.add(access)
 		db.commit()
 		db.refresh(invitation)
-		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.CAREGIVER_ID: str(caregiver_id), Keys.INVITATION_ID: invitation_id}
+		logger.info("invitation accepted by caregiver", extra={"invitationId": invitation_id, "caregiverId": caregiver_id})
+		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=invitation_id, caregiver_id=str(caregiver_id))
 
 	def caregiver_decline(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
 		try:
@@ -188,7 +178,8 @@ class InvitationsService:
 			raise ValueError(Errors.USER_NOT_FOUND)
 		invitation.status = InvitationStatus.DECLINED
 		db.commit()
-		return {Keys.MESSAGE: Messages.INVITATION_DECLINED, Keys.CAREGIVER_ID: str(caregiver_id), Keys.INVITATION_ID: invitation_id}
+		logger.info("invitation declined by caregiver", extra={"invitationId": invitation_id, "caregiverId": caregiver_id})
+		return self._map_action(Messages.INVITATION_DECLINED, invitation_id=invitation_id, caregiver_id=str(caregiver_id))
 
 	def recipient_accept(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
 		try:
@@ -212,7 +203,8 @@ class InvitationsService:
 		db.add(access)
 		db.commit()
 		db.refresh(invitation)
-		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.RECIPIENT_ID: str(recipient_id), Keys.INVITATION_ID: invitation_id}
+		logger.info("invitation accepted by recipient", extra={"invitationId": invitation_id, "recipientId": recipient_id})
+		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=invitation_id, recipient_id=str(recipient_id))
 
 	def recipient_decline(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
 		try:
@@ -231,7 +223,8 @@ class InvitationsService:
 			raise ValueError(Errors.USER_NOT_FOUND)
 		invitation.status = InvitationStatus.DECLINED
 		db.commit()
-		return {Keys.MESSAGE: Messages.INVITATION_DECLINED, Keys.RECIPIENT_ID: str(recipient_id), Keys.INVITATION_ID: invitation_id}
+		logger.info("invitation declined by recipient", extra={"invitationId": invitation_id, "recipientId": recipient_id})
+		return self._map_action(Messages.INVITATION_DECLINED, invitation_id=invitation_id, recipient_id=str(recipient_id))
 
 	def accept_by_token(self, db: Session, *, token: str) -> Dict[str, Any]:
 		from backend.services.invite_signing import verify_invite
@@ -262,6 +255,7 @@ class InvitationsService:
 		access = RecipientCaregiverAccess(recipient_id=inv.recipient_id, caregiver_id=inv.caregiver_id)
 		db.add(access)
 		db.commit()
-		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.INVITATION_ID: str(inv.id)}
+		logger.info("invitation accepted by token", extra={"invitationId": str(inv.id), "role": role})
+		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=str(inv.id))
 
 

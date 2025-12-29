@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import logging
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
@@ -25,6 +26,7 @@ from backend.routers import (
 
 
 app = FastAPI(title=API_TITLE)
+logger = logging.getLogger(__name__)
 
 # CORS
 _settings = get_settings()
@@ -36,6 +38,10 @@ app.add_middleware(
     allow_methods=Cors.ALLOW_METHODS_ALL,
     allow_headers=Cors.ALLOW_HEADERS_ALL,
 )
+if not _settings.invite_signing_secret:
+    logger.warning("INVITE_SIGNING_SECRET is not set; invite token verification may fail.")
+if not _settings.email_from:
+    logger.warning("EMAIL_FROM is not set; email sender will default to placeholder.")
 
 # Register routers
 # app.include_router(chats.router)
