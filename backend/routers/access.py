@@ -128,12 +128,13 @@ async def send_invitation(
         Keys.DATA: {
             Fields.ID: str(inv.id),
             Keys.CAREGIVER_ID: str(inv.caregiver_id),
-            Keys.RECIPIENT_ID: str(inv.recipient_id),
+            Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
             Keys.STATUS: inv.status,
+            Keys.SENT_BY: inv.sent_by,
             # Sender is the caregiver in this flow
-            "sender_id": str(caregiver.id),
-            "sender_email": caregiver.email,
-            "sender_full_name": caregiver.full_name,
+            Keys.SENDER_ID: str(caregiver.id),
+            Keys.SENDER_EMAIL: caregiver.email,
+            Keys.SENDER_FULL_NAME: caregiver.full_name,
             Keys.ACCEPT_URL: accept_url,
         },
     }
@@ -156,7 +157,7 @@ async def list_sent_invitations(caregiverId: str, db: Session = Depends(get_db))
             Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
             Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
             Keys.STATUS: inv.status,
-            "sent_by": inv.sent_by,
+            Keys.SENT_BY: inv.sent_by,
             # Sender based on initiator
             **(
                 (
@@ -218,7 +219,7 @@ async def list_recipient_invitations(recipientId: str, db: Session = Depends(get
             Keys.CAREGIVER_ID: str(i.caregiver_id) if i.caregiver_id else None,
             Keys.RECIPIENT_ID: str(i.recipient_id) if i.recipient_id else None,
             Keys.STATUS: i.status,
-            "sent_by": i.sent_by,
+            Keys.SENT_BY: i.sent_by,
             # Sender based on initiator
             **(
                 (
@@ -339,13 +340,14 @@ async def create_recipient_invitation(
         Keys.MESSAGE: Messages.INVITATION_SENT,
         Keys.DATA: {
             Fields.ID: str(inv.id),
-            Keys.CAREGIVER_ID: str(inv.caregiver_id),
-            Keys.RECIPIENT_ID: str(inv.recipient_id),
+            Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
+            Keys.RECIPIENT_ID: str(inv.recipient_id) if inv.recipient_id else None,
             Keys.STATUS: inv.status,
+            Keys.SENT_BY: inv.sent_by,
             # Sender is the recipient in this flow
-            "sender_id": str(recipient.id),
-            "sender_email": recipient.email,
-            "sender_full_name": recipient.full_name,
+            Keys.SENDER_ID: str(recipient.id),
+            Keys.SENDER_EMAIL: recipient.email,
+            Keys.SENDER_FULL_NAME: recipient.full_name,
             Keys.ACCEPT_URL: accept_url,
         },
     }

@@ -282,6 +282,7 @@ class Keys:
     DATA: Final[str] = "data"
     STATUS: Final[str] = "status"
     ACCEPT_URL: Final[str] = "acceptUrl"
+    SENT_BY: Final[str] = "sent_by"
     JOB_ID: Final[str] = "jobId"
     PROJECT_ID: Final[str] = "projectId"
     BUCKET: Final[str] = "bucket"
