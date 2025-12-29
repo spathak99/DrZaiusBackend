@@ -164,6 +164,12 @@ class Summaries:
     GROUP_LEAVE: Final[str] = "Leave group"
     RAG_QUERY: Final[str] = "Query the Vertex RAG corpus"
     AVATAR_UPLOAD: Final[str] = "Upload user avatar"
+    GROUP_DELETE: Final[str] = "Delete a group"
+    GROUP_MEMBER_UPDATE: Final[str] = "Update group member role"
+    PAYMENT_CODE_CREATE: Final[str] = "Create payment code"
+    PAYMENT_CODES_LIST: Final[str] = "List payment codes"
+    PAYMENT_CODE_VOID: Final[str] = "Void payment code"
+    PAYMENT_CODE_REDEEM: Final[str] = "Redeem payment code"
 
 
 class Messages:
@@ -200,6 +206,8 @@ class Messages:
     DLP_REDACTION_SCHEDULED: Final[str] = "redaction_scheduled"
     GROUP_MEMBER_ADDED: Final[str] = "group member added"
     GROUP_MEMBER_ROLE_UPDATED: Final[str] = "group member role updated"
+    PAYMENT_CODE_CREATED: Final[str] = "payment code created"
+    PAYMENT_CODE_REDEEMED: Final[str] = "payment code redeemed"
 
 
 class Roles:
@@ -254,6 +262,9 @@ class Errors:
     INTERNAL_ERROR: Final[str] = "internal_error"
     PAYLOAD_TOO_LARGE: Final[str] = "payload_too_large"
     UNSUPPORTED_MEDIA_TYPE: Final[str] = "unsupported_media_type"
+    PAYMENT_CODE_NOT_FOUND: Final[str] = "payment_code_not_found"
+    PAYMENT_CODE_EXPIRED: Final[str] = "payment_code_expired"
+    PAYMENT_CODE_REDEEMED_ALREADY: Final[str] = "payment_code_redeemed_already"
 
 
 class Defaults:
@@ -317,6 +328,9 @@ class Keys:
     SENDER_EMAIL: Final[str] = "sender_email"
     SENDER_FULL_NAME: Final[str] = "sender_full_name"
     TOKEN: Final[str] = "token"
+    CODE: Final[str] = "code"
+    EXPIRES_AT: Final[str] = "expires_at"
+    REDEEMED_BY: Final[str] = "redeemed_by"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"
@@ -391,6 +405,12 @@ class Tables:
     FILES: Final[str] = "files"
     FILE_ACCESS: Final[str] = "file_access"
     INVITATIONS: Final[str] = "invitations"
+    GROUP_PAYMENT_CODES: Final[str] = "group_payment_codes"
+
+class PaymentCodeStatus:
+    ACTIVE: Final[str] = "active"
+    EXPIRED: Final[str] = "expired"
+    REDEEMED: Final[str] = "redeemed"
 
 
 class DeepLink:

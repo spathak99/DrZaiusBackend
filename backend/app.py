@@ -26,6 +26,7 @@ from backend.routers import (
     ops,
     groups,
     rag,
+    payments,
 )
 
 
@@ -91,6 +92,7 @@ app.include_router(compliance.router)
 app.include_router(ops.router)
 app.include_router(groups.router)
 app.include_router(rag.router)
+app.include_router(payments.router)
 
 
 @app.on_event("startup")

@@ -7,7 +7,7 @@ from sqlalchemy import DateTime, ForeignKey, String, Text, func, UniqueConstrain
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from backend.schemas.common import InvitationStatus
-from backend.core.constants import Tables, Fields
+from backend.core.constants import Tables, Fields, Keys, PaymentCodeStatus
 
 
 class Base(DeclarativeBase):
@@ -208,4 +208,20 @@ class GroupMembership(Base):
 
     group: Mapped[Group] = relationship(back_populates="members")
     user: Mapped[User] = relationship(back_populates="groups_memberships")
+
+
+class GroupPaymentCode(Base):
+    __tablename__ = Tables.GROUP_PAYMENT_CODES
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.GROUPS}.{Fields.ID}", ondelete="CASCADE"))
+    code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), default=PaymentCodeStatus.ACTIVE)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.USERS}.{Fields.ID}"))
+    redeemed_by: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey(f"{Tables.USERS}.{Fields.ID}"), nullable=True)
+    redeemed_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    meta: Mapped[Optional[dict]] = mapped_column(sa.dialects.postgresql.JSONB, nullable=True)
+    created_at: Mapped[datetime] = ts_created()
+    updated_at: Mapped[datetime] = ts_updated()
 

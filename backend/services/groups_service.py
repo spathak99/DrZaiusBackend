@@ -88,6 +88,12 @@ class MembershipsService:
 
 	def change_role(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str) -> Dict[str, Any]:
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
+		# Do not allow demoting the creator from admin
+		group = self.groups_repo.get(db, group_id=group_id)
+		if group is None:
+			raise ValueError(Errors.GROUP_NOT_FOUND)
+		if str(group.created_by) == str(user_id) and role != GroupRoles.ADMIN:
+			raise ValueError(Errors.FORBIDDEN)
 		row = self.repo.change_role(db, group_id=group_id, user_id=user_id, role=role)
 		if row is None:
 			raise ValueError(Errors.USER_NOT_FOUND)
@@ -100,6 +106,12 @@ class MembershipsService:
 
 	def remove(self, db: Session, *, group_id: str, actor_id: str, user_id: str) -> None:
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
+		# Do not allow removing the creator from the group
+		group = self.groups_repo.get(db, group_id=group_id)
+		if group is None:
+			raise ValueError(Errors.GROUP_NOT_FOUND)
+		if str(group.created_by) == str(user_id):
+			raise ValueError(Errors.FORBIDDEN)
 		# If removing an admin, ensure at least one remains
 		m = self.repo.get(db, group_id=group_id, user_id=user_id)
 		if m is None:
@@ -112,6 +124,12 @@ class MembershipsService:
 		return
 
 	def leave(self, db: Session, *, group_id: str, user_id: str) -> None:
+		# Creator cannot leave the group
+		group = self.groups_repo.get(db, group_id=group_id)
+		if group is None:
+			raise ValueError(Errors.GROUP_NOT_FOUND)
+		if str(group.created_by) == str(user_id):
+			raise ValueError(Errors.FORBIDDEN)
 		m = self.repo.get(db, group_id=group_id, user_id=user_id)
 		if m is None:
 			return
