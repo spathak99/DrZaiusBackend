@@ -3,7 +3,6 @@ from fastapi import APIRouter, Body, status, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys
-from backend.services import AccessService
 from backend.schemas import CaregiverAccessUpdate, RecipientInvitationCreate
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
@@ -28,7 +27,6 @@ recipient_invitations_router = APIRouter(
 )
 public_invites_router = APIRouter(prefix="/invites", tags=[Tags.ACCESS])
 
-service = AccessService()
 
 
 @recipient_access_router.get(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVERS_LIST)
@@ -43,21 +41,83 @@ async def list_recipient_caregivers(recipientId: str, db: Session = Depends(get_
 
 
 @recipient_access_router.post(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVER_ASSIGN)
-async def assign_caregiver(recipientId: str, payload: Dict[str, Any] = Body(default=None)) -> Dict[str, Any]:
-    return service.assign_caregiver(recipientId, payload)
+async def assign_caregiver(
+    recipientId: str, payload: Dict[str, Any] = Body(default=None), db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    caregiver_id = (payload or {}).get(Keys.CAREGIVER_ID) or (payload or {}).get("caregiverId")
+    access_level = (payload or {}).get(Fields.ACCESS_LEVEL) or (payload or {}).get("access_level")
+    if not caregiver_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.INVALID_PAYLOAD)
+    # Validate recipient and caregiver
+    recipient = db.scalar(select(User).where(User.id == recipientId))
+    caregiver = db.scalar(select(User).where(User.id == caregiver_id))
+    if recipient is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
+    if caregiver is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    # Upsert access
+    existing = db.scalar(
+        select(RecipientCaregiverAccess).where(
+            RecipientCaregiverAccess.recipient_id == recipientId,
+            RecipientCaregiverAccess.caregiver_id == caregiver_id,
+        )
+    )
+    if existing:
+        existing.access_level = access_level or existing.access_level
+    else:
+        db.add(
+            RecipientCaregiverAccess(
+                recipient_id=recipient.id,
+                caregiver_id=caregiver.id,
+                access_level=access_level,
+            )
+        )
+    db.commit()
+    return {
+        Keys.MESSAGE: Messages.CAREGIVER_ASSIGNED,
+        Keys.RECIPIENT_ID: str(recipient.id),
+        Keys.CAREGIVER_ID: str(caregiver.id),
+        Fields.ACCESS_LEVEL: access_level,
+    }
 
 
 @recipient_access_router.delete(Routes.CAREGIVER_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.RECIPIENT_CAREGIVER_REVOKE)
-async def revoke_caregiver_access(recipientId: str, caregiverId: str) -> None:
-    service.revoke_caregiver(recipientId, caregiverId)
+async def revoke_caregiver_access(recipientId: str, caregiverId: str, db: Session = Depends(get_db)) -> None:
+    rows = db.scalars(
+        select(RecipientCaregiverAccess).where(
+            RecipientCaregiverAccess.recipient_id == recipientId,
+            RecipientCaregiverAccess.caregiver_id == caregiverId,
+        )
+    ).all()
+    for row in rows:
+        db.delete(row)
+    db.commit()
     return
 
 
 @recipient_access_router.put(Routes.CAREGIVER_ID, summary=Summaries.RECIPIENT_CAREGIVER_UPDATE)
 async def update_caregiver_access(
-    recipientId: str, caregiverId: str, payload: CaregiverAccessUpdate = Body(default=None)
+    recipientId: str,
+    caregiverId: str,
+    payload: CaregiverAccessUpdate = Body(default=None),
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    return service.update_caregiver_access(recipientId, caregiverId, payload.model_dump())
+    rel = db.scalar(
+        select(RecipientCaregiverAccess).where(
+            RecipientCaregiverAccess.recipient_id == recipientId,
+            RecipientCaregiverAccess.caregiver_id == caregiverId,
+        )
+    )
+    if rel is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
+    rel.access_level = payload.access_level
+    db.commit()
+    return {
+        Keys.MESSAGE: Messages.ACCESS_UPDATED,
+        Keys.RECIPIENT_ID: str(recipientId),
+        Keys.CAREGIVER_ID: str(caregiverId),
+        Fields.ACCESS_LEVEL: rel.access_level,
+    }
 
 
 @caregiver_recipients_router.get(Routes.ROOT, summary=Summaries.CAREGIVER_RECIPIENTS_LIST)
