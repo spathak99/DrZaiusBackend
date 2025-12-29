@@ -58,3 +58,21 @@ class CaregiverInvitesEnvelope(BaseModel):
 class RecipientInvitesEnvelope(BaseModel):
     recipientId: str
     items: List[InvitationListItem]
+
+
+# Action responses for accept/decline flows
+class RecipientInvitationActionEnvelope(BaseModel):
+    message: str
+    recipientId: str
+    invitationId: str
+
+
+class CaregiverInvitationActionEnvelope(BaseModel):
+    message: str
+    caregiverId: str
+    invitationId: str
+
+
+class PublicInvitationActionEnvelope(BaseModel):
+    message: str
+    invitationId: str

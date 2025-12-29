@@ -14,6 +14,9 @@ from backend.schemas.invitation import (
     InvitationCreatedEnvelope,
     CaregiverInvitesEnvelope,
     RecipientInvitesEnvelope,
+    RecipientInvitationActionEnvelope,
+    CaregiverInvitationActionEnvelope,
+    PublicInvitationActionEnvelope,
 )
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
@@ -180,7 +183,7 @@ async def list_recipient_invitations(
     return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
 
 
-@recipient_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT)
+@recipient_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT, response_model=RecipientInvitationActionEnvelope)
 async def accept_invitation(
     recipientId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
@@ -190,7 +193,7 @@ async def accept_invitation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@recipient_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE)
+@recipient_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE, response_model=RecipientInvitationActionEnvelope)
 async def decline_invitation(
     recipientId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
@@ -225,7 +228,7 @@ async def create_recipient_invitation(
 
 
 # Caregiver accepts or declines an invitation they received
-@caregiver_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT)
+@caregiver_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT, response_model=CaregiverInvitationActionEnvelope)
 async def caregiver_accept_invitation(
     caregiverId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
@@ -235,7 +238,7 @@ async def caregiver_accept_invitation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@caregiver_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE)
+@caregiver_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE, response_model=CaregiverInvitationActionEnvelope)
 async def caregiver_decline_invitation(
     caregiverId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
@@ -260,7 +263,7 @@ async def list_recipient_sent_invitations(
 
 
 # Accept by signed token (no auth required)
-@public_invites_router.post("/accept-by-token", summary=Summaries.INVITATION_ACCEPT)
+@public_invites_router.post("/accept-by-token", summary=Summaries.INVITATION_ACCEPT, response_model=PublicInvitationActionEnvelope)
 async def accept_by_token(
     payload: Dict[str, Any] = Body(default=None),
     db: Session = Depends(get_db),
