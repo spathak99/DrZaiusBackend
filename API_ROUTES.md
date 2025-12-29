@@ -2,6 +2,8 @@
 
 Consolidated list of main endpoints with brief summaries. All authenticated endpoints require a bearer token unless noted.
 
+MVP status: in progress. Security APIs (keys/policies workflows) are present but not finalized for MVP; real DLP redaction and Vertex RAG integration are pending and will be completed before launch.
+
 ## Auth (`/auth`)
 - POST `/auth/signup` — Create user (requires role, corpus_uri)
 - POST `/auth/login` — Login, returns access_token
@@ -60,7 +62,7 @@ Public:
 
 ## Ops / Security (selected)
 - GET `/readyz`, `/healthz` — Health endpoints
-- Security routes under `/security/*` (keys, policies)
+- Security routes under `/security/*` (keys, policies) — PENDING finalization for MVP
 
 Notes:
 - Error payloads include standard codes from `backend/core/constants.py::Errors`.
