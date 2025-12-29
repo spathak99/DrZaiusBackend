@@ -15,6 +15,7 @@ from backend.core.constants import (
 	Errors,
 )
 from backend.db.models import User, Invitation, RecipientCaregiverAccess
+from backend.repositories.interfaces import InvitationsRepo
 from backend.repositories.invitations_repo import InvitationsRepository
 from backend.services.invite_signing import sign_invite
 from backend.services.email_service import send_invite_email
@@ -22,8 +23,8 @@ import uuid
 
 
 class InvitationsService:
-	def __init__(self) -> None:
-		self.repo = InvitationsRepository()
+	def __init__(self, repo: InvitationsRepo | None = None) -> None:
+		self.repo: InvitationsRepo = repo or InvitationsRepository()
 
 	def _sender(self, user: Optional[User]) -> Dict[str, Optional[str]]:
 		return {

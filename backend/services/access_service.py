@@ -6,12 +6,13 @@ from sqlalchemy.orm import Session
 
 from backend.core.constants import Messages, Errors, Fields, Keys
 from backend.db.models import User
+from backend.repositories.interfaces import AccessRepo
 from backend.repositories.access_repo import AccessRepository
 
 
 class AccessService:
-	def __init__(self) -> None:
-		self.repo = AccessRepository()
+	def __init__(self, repo: AccessRepo | None = None) -> None:
+		self.repo: AccessRepo = repo or AccessRepository()
 
 	def assign(self, db: Session, *, recipient_id: str, caregiver_id: str, access_level: Optional[str]) -> Dict[str, Any]:
 		recipient = db.scalar(select(User).where(User.id == recipient_id))

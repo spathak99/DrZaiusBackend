@@ -20,6 +20,8 @@ from backend.db.database import get_db
 from backend.db.models import Invitation, User, RecipientCaregiverAccess
 from backend.core.constants import Roles
 from backend.services import InvitationsService, AccessService
+from backend.repositories.invitations_repo import InvitationsRepository
+from backend.repositories.access_repo import AccessRepository
 import uuid
 
 
@@ -39,11 +41,11 @@ public_invites_router = APIRouter(prefix="/invites", tags=[Tags.ACCESS])
 
 # Dependency providers
 def get_invitations_service() -> InvitationsService:
-    return InvitationsService()
+    return InvitationsService(repo=InvitationsRepository())
 
 
 def get_access_service() -> AccessService:
-    return AccessService()
+    return AccessService(repo=AccessRepository())
 
 
 
