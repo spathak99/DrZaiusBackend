@@ -83,6 +83,7 @@ class Routes:
     CODES: Final[str] = "/codes"
     VOID: Final[str] = "/void"
     REDEEM: Final[str] = "/redeem"
+    SENT: Final[str] = "/sent"
     # Invitations actions
     INVITATION_ACCEPT: Final[str] = "/{invitationId}/accept"
     INVITATION_DECLINE: Final[str] = "/{invitationId}/decline"
@@ -447,6 +448,9 @@ class LogEvents:
     PAYMENT_CODE_CREATED: Final[str] = "payment_code_created"
     PAYMENT_CODE_VOIDED: Final[str] = "payment_code_voided"
     PAYMENT_CODE_REDEEMED: Final[str] = "payment_code_redeemed"
+    INVITATION_SENT: Final[str] = "invitation_sent"
+    INVITATION_ACCEPTED: Final[str] = "invitation_accepted"
+    INVITATION_DECLINED: Final[str] = "invitation_declined"
 
 
 class DeepLink:

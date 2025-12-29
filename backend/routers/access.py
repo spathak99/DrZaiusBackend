@@ -275,9 +275,7 @@ async def caregiver_decline_invitation(
 
 
 # Recipient: list invites sent by them (to caregivers)
-@recipient_invitations_router.get(
-    "/sent", summary=Summaries.INVITATIONS_SENT_LIST, response_model=RecipientInvitesEnvelope
-)
+@recipient_invitations_router.get(Routes.SENT, summary=Summaries.INVITATIONS_SENT_LIST, response_model=RecipientInvitesEnvelope)
 async def list_recipient_sent_invitations(
     recipientId: str, response: Response, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
@@ -285,8 +283,7 @@ async def list_recipient_sent_invitations(
         items = invitations_service.list_sent_by_recipient(db, recipient_id=recipientId)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=_err(str(e)))
-    from backend.core.constants import Headers as _Headers
-    response.headers[_Headers.TOTAL_COUNT] = str(len(items))
+    response.headers[Headers.TOTAL_COUNT] = str(len(items))
     return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
 
 

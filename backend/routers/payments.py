@@ -21,6 +21,9 @@ from backend.routers.http_errors import status_for_error
 
 router = APIRouter(tags=[Tags.GROUPS])
 
+def get_payment_codes_service() -> PaymentCodesService:
+	return PaymentCodesService()
+
 
 @router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodeCreateResponse, summary=Summaries.PAYMENT_CODE_CREATE)
 async def create_code(
@@ -28,10 +31,10 @@ async def create_code(
 	payload: CodeCreateRequest = Body(default=None),
 	current_user: User = Depends(get_current_user),
 	db: Session = Depends(get_db),
+	payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service),
 ) -> Dict[str, Any]:
-	svc = PaymentCodesService()
 	try:
-		data = svc.create_code(db, group_id=id, actor_id=str(current_user.id), ttl_minutes=payload.ttl_minutes or 0)
+		data = payment_codes_service.create_code(db, group_id=id, actor_id=str(current_user.id), ttl_minutes=payload.ttl_minutes or 0)
 	except ValueError as e:
 		detail = str(e)
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)
@@ -40,11 +43,10 @@ async def create_code(
 
 @router.get(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodesListEnvelope, summary=Summaries.PAYMENT_CODES_LIST)
 async def list_codes(
-	id: str, response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+	id: str, response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service)
 ) -> Dict[str, Any]:
-	svc = PaymentCodesService()
 	try:
-		rows = svc.list_codes(db, group_id=id, actor_id=str(current_user.id))
+		rows = payment_codes_service.list_codes(db, group_id=id, actor_id=str(current_user.id))
 	except ValueError as e:
 		detail = str(e)
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)
@@ -55,11 +57,10 @@ async def list_codes(
 
 @router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES + Routes.CODE + Routes.VOID, summary=Summaries.PAYMENT_CODE_VOID, status_code=status.HTTP_204_NO_CONTENT)
 async def void_code(
-	id: str, code: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+	id: str, code: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service)
 ) -> None:
-	svc = PaymentCodesService()
 	try:
-		svc.void_code(db, group_id=id, actor_id=str(current_user.id), code=code)
+		payment_codes_service.void_code(db, group_id=id, actor_id=str(current_user.id), code=code)
 	except ValueError as e:
 		detail = str(e)
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)
@@ -71,10 +72,10 @@ async def redeem_code(
 	payload: RedeemRequest = Body(default=None),
 	current_user: User = Depends(get_current_user),
 	db: Session = Depends(get_db),
+	payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service),
 ) -> Dict[str, Any]:
-	svc = PaymentCodesService()
 	try:
-		data = svc.redeem(db, code=payload.code, user_id=str(current_user.id))
+		data = payment_codes_service.redeem(db, code=payload.code, user_id=str(current_user.id))
 	except ValueError as e:
 		detail = str(e)
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)

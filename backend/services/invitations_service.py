@@ -14,6 +14,7 @@ from backend.core.constants import (
 	InvitationStatus,
 	DeepLink,
 	Errors,
+	LogEvents,
 )
 from backend.db.models import User, Invitation, RecipientCaregiverAccess
 from backend.repositories.interfaces import InvitationsRepo
@@ -86,6 +87,7 @@ class InvitationsService:
 		)
 		accept_url = self._accept_url({"invitationId": str(inv.id), "role": Roles.RECIPIENT, "recipientId": str(recipient.id) if recipient else None})
 		send_invite_email(to_email=str(email), accept_url=accept_url)
+		logger.info(LogEvents.INVITATION_SENT if hasattr(LogEvents, "INVITATION_SENT") else "invitation_sent", extra={"invitationId": str(inv.id), "senderRole": Roles.CAREGIVER, "senderId": str(caregiver.id)})
 		return self._map_created(inv, caregiver, accept_url)
 
 	def send_from_recipient(self, db: Session, *, recipient_id: str, email: str) -> Dict[str, Any]:
@@ -102,6 +104,7 @@ class InvitationsService:
 		)
 		accept_url = self._accept_url({"invitationId": str(inv.id), "role": Roles.CAREGIVER, "caregiverId": str(caregiver.id) if caregiver else None})
 		send_invite_email(to_email=str(email), accept_url=accept_url)
+		logger.info(LogEvents.INVITATION_SENT if hasattr(LogEvents, "INVITATION_SENT") else "invitation_sent", extra={"invitationId": str(inv.id), "senderRole": Roles.RECIPIENT, "senderId": str(recipient.id)})
 		return self._map_created(inv, recipient, accept_url)
 
 	def list_for_caregiver(self, db: Session, *, caregiver_id: str) -> List[Dict[str, Any]]:
@@ -160,7 +163,7 @@ class InvitationsService:
 		db.add(access)
 		db.commit()
 		db.refresh(invitation)
-		logger.info("invitation accepted by caregiver", extra={"invitationId": invitation_id, "caregiverId": caregiver_id})
+		logger.info(LogEvents.INVITATION_ACCEPTED if hasattr(LogEvents, "INVITATION_ACCEPTED") else "invitation_accepted", extra={"invitationId": invitation_id, "role": Roles.CAREGIVER, "actorId": caregiver_id})
 		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=invitation_id, caregiver_id=str(caregiver_id))
 
 	def caregiver_decline(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
@@ -177,7 +180,7 @@ class InvitationsService:
 			raise ValueError(Errors.USER_NOT_FOUND)
 		invitation.status = InvitationStatus.DECLINED
 		db.commit()
-		logger.info("invitation declined by caregiver", extra={"invitationId": invitation_id, "caregiverId": caregiver_id})
+		logger.info(LogEvents.INVITATION_DECLINED if hasattr(LogEvents, "INVITATION_DECLINED") else "invitation_declined", extra={"invitationId": invitation_id, "role": Roles.CAREGIVER, "actorId": caregiver_id})
 		return self._map_action(Messages.INVITATION_DECLINED, invitation_id=invitation_id, caregiver_id=str(caregiver_id))
 
 	def recipient_accept(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
@@ -202,7 +205,7 @@ class InvitationsService:
 		db.add(access)
 		db.commit()
 		db.refresh(invitation)
-		logger.info("invitation accepted by recipient", extra={"invitationId": invitation_id, "recipientId": recipient_id})
+		logger.info(LogEvents.INVITATION_ACCEPTED if hasattr(LogEvents, "INVITATION_ACCEPTED") else "invitation_accepted", extra={"invitationId": invitation_id, "role": Roles.RECIPIENT, "actorId": recipient_id})
 		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=invitation_id, recipient_id=str(recipient_id))
 
 	def recipient_decline(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
@@ -222,7 +225,7 @@ class InvitationsService:
 			raise ValueError(Errors.USER_NOT_FOUND)
 		invitation.status = InvitationStatus.DECLINED
 		db.commit()
-		logger.info("invitation declined by recipient", extra={"invitationId": invitation_id, "recipientId": recipient_id})
+		logger.info(LogEvents.INVITATION_DECLINED if hasattr(LogEvents, "INVITATION_DECLINED") else "invitation_declined", extra={"invitationId": invitation_id, "role": Roles.RECIPIENT, "actorId": recipient_id})
 		return self._map_action(Messages.INVITATION_DECLINED, invitation_id=invitation_id, recipient_id=str(recipient_id))
 
 	def accept_by_token(self, db: Session, *, token: str) -> Dict[str, Any]:
@@ -252,7 +255,7 @@ class InvitationsService:
 		access = RecipientCaregiverAccess(recipient_id=inv.recipient_id, caregiver_id=inv.caregiver_id)
 		db.add(access)
 		db.commit()
-		logger.info("invitation accepted by token", extra={"invitationId": str(inv.id), "role": role})
+		logger.info(LogEvents.INVITATION_ACCEPTED if hasattr(LogEvents, "INVITATION_ACCEPTED") else "invitation_accepted", extra={"invitationId": str(inv.id), "role": role})
 		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=str(inv.id))
 
 
