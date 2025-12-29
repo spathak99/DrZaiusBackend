@@ -18,9 +18,8 @@ from backend.core.constants import (
 from backend.db.models import User, Invitation, RecipientCaregiverAccess
 from backend.repositories.interfaces import InvitationsRepo
 from backend.repositories.invitations_repo import InvitationsRepository
-from backend.services.invite_signing import sign_invite
+from backend.services.invite_signing import sign_invite, verify_invite
 from backend.services.email_service import send_invite_email
-import uuid
 
 
 logger = logging.getLogger(__name__)
@@ -227,8 +226,6 @@ class InvitationsService:
 		return self._map_action(Messages.INVITATION_DECLINED, invitation_id=invitation_id, recipient_id=str(recipient_id))
 
 	def accept_by_token(self, db: Session, *, token: str) -> Dict[str, Any]:
-		from backend.services.invite_signing import verify_invite
-
 		if not token:
 			raise ValueError(Errors.MISSING_TOKEN)
 		try:

@@ -49,6 +49,7 @@ class Prefix:
     GROUPS: Final[str] = "/groups"
     GROUP_MEMBERS: Final[str] = "/groups/{groupId}/members"
     RAG: Final[str] = "/rag"
+    REDACTION: Final[str] = "/redaction"
 
 class Routes:
     ROOT: Final[str] = ""
@@ -176,6 +177,7 @@ class Summaries:
     PAYMENT_CODES_LIST: Final[str] = "List payment codes"
     PAYMENT_CODE_VOID: Final[str] = "Void payment code"
     PAYMENT_CODE_REDEEM: Final[str] = "Redeem payment code"
+    REDACTION_TEST: Final[str] = "Test redaction service with small text"
 
 
 class Messages:
@@ -359,6 +361,9 @@ class Gcp:
 
 class VertexEndpoints:
     AIPLATFORM_ENDPOINT_TEMPLATE: Final[str] = "https://{location}-aiplatform.googleapis.com"
+
+class Dlp:
+    DEFAULT_MIN_LIKELIHOOD: Final[str] = "POSSIBLE"
 
 
 class DocKeys:

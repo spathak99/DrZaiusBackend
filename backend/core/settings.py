@@ -51,6 +51,23 @@ class Settings(BaseSettings):
         default=False,
         description="When true, route uploads to temp bucket + Pub/Sub + DLP pipeline",
     )
+    # DLP
+    enable_dlp: bool = Field(
+        default=False,
+        description="When true, use Google Cloud DLP for redaction where available",
+    )
+    dlp_location: str = Field(
+        default=Gcp.DEFAULT_LOCATION,
+        description="GCP region/location for DLP",
+    )
+    dlp_min_likelihood: str = Field(
+        default="POSSIBLE",
+        description="Minimum likelihood for DLP findings (e.g., VERY_UNLIKELY, UNLIKELY, POSSIBLE, LIKELY, VERY_LIKELY)",
+    )
+    dlp_info_types: List[str] = Field(
+        default_factory=list,
+        description="Optional explicit list of DLP info types to inspect; empty = provider defaults",
+    )
     invite_signing_secret: str = Field(
         default="dev-invite-secret-change-me",
         description="Secret used to sign invite deep links (HMAC-SHA256)",

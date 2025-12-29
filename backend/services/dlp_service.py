@@ -1,8 +1,16 @@
 from typing import Dict, Any, List, Tuple, Optional
+import logging
 from backend.core.constants import Keys, Messages
+from backend.core.settings import get_settings
 
 
 class DlpService:
+    def __init__(self) -> None:
+        self._settings = get_settings()
+        self._logger = logging.getLogger(__name__)
+		# Placeholder for future provider client; unused in stub
+		self._client = None
+
     def redact(self, *, bucket: str, object_name: str) -> Dict[str, Any]:
         """
         Stub for a future GCP DLP integration. Returns a mock response indicating
@@ -12,12 +20,9 @@ class DlpService:
 
     def redact_content(self, *, content: bytes, mime_type: Optional[str] = None) -> Tuple[bytes, List[Dict[str, Any]]]:
         """
-        Redact PII from provided content. Stubbed for now:
-        - Returns content unchanged
-        - Returns empty findings list
-        In production, integrate with Cloud DLP to return redacted bytes and structured findings.
+		Stubbed redaction: returns content unchanged and empty findings.
+		When DLP is enabled later, implement provider calls here.
         """
-        findings: List[Dict[str, Any]] = []
-        return content, findings
+		return content, []
 
 
