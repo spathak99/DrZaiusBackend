@@ -51,6 +51,12 @@ class Settings(BaseSettings):
         default=False,
         description="When true, route uploads to temp bucket + Pub/Sub + DLP pipeline",
     )
+    invite_signing_secret: str = Field(
+        default="dev-invite-secret-change-me",
+        description="Secret used to sign invite deep links (HMAC-SHA256)",
+    )
+    sendgrid_api_key: str = Field(default="", description="SendGrid API key; leave empty to disable email send")
+    email_from: str = Field(default="no-reply@example.com", description="From address for transactional emails")
 
     class Config:
         env_file = ".env"

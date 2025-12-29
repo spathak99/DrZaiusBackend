@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, status, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields, Roles
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
@@ -26,7 +26,7 @@ async def list_caregivers(current_user: User = Depends(get_current_user), db: Se
         ]
         return {Keys.ITEMS: items}
     # If user has no caregivers assigned and is a caregiver themselves, don't list self
-    if current_user.role == "caregiver":
+    if current_user.role == Roles.CAREGIVER:
         return {Keys.ITEMS: []}
     # Fallback: if user is a recipient with no caregivers yet, return empty
     return {Keys.ITEMS: []}

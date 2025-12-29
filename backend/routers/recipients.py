@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, status, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields, Roles
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
@@ -15,7 +15,7 @@ router = APIRouter(prefix=Prefix.RECIPIENTS, tags=[Tags.RECIPIENTS], dependencie
 async def list_recipients(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
     items: List[Dict[str, Any]] = []
     # If the current user is a caregiver, list recipients they have access to
-    if current_user.role == "caregiver":
+    if current_user.role == Roles.CAREGIVER:
         rows = db.scalars(select(RecipientCaregiverAccess).where(RecipientCaregiverAccess.caregiver_id == current_user.id)).all()
         recipient_ids = [r.recipient_id for r in rows if r.recipient_id is not None]
         if recipient_ids:

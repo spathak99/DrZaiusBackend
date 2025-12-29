@@ -8,7 +8,9 @@ from backend.schemas import CaregiverAccessUpdate, RecipientInvitationCreate
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
 from backend.db.models import Invitation, User, RecipientCaregiverAccess
-from backend.core.constants import Roles
+from backend.core.constants import Roles, DeepLink
+from backend.services.invite_signing import sign_invite
+from backend.services.email_service import send_invite_email
 import uuid
 
 
@@ -24,6 +26,7 @@ caregiver_invitations_router = APIRouter(
 recipient_invitations_router = APIRouter(
     prefix=Prefix.RECIPIENT_INVITATIONS, tags=[Tags.ACCESS], dependencies=[Depends(get_current_user)]
 )
+public_invites_router = APIRouter(prefix="/invites", tags=[Tags.ACCESS])
 
 service = AccessService()
 
@@ -103,6 +106,23 @@ async def send_invitation(
     db.add(inv)
     db.commit()
     db.refresh(inv)
+    # Build deep link accept URL for recipient
+    try:
+        token = sign_invite(
+            {
+                "invitationId": str(inv.id),
+                "role": Roles.RECIPIENT,
+                "recipientId": str(recipient.id) if recipient else None,
+            }
+        )
+        accept_url = f"{DeepLink.SCHEME}://{DeepLink.INVITE_ACCEPT_PATH}?token={token}"
+    except Exception:
+        accept_url = None
+    # Send email to recipient email provided
+    try:
+        send_invite_email(to_email=str(payload.email), accept_url=accept_url)
+    except Exception:
+        pass
     return {
         Keys.MESSAGE: Messages.INVITATION_SENT,
         Keys.DATA: {
@@ -114,6 +134,7 @@ async def send_invitation(
             "sender_id": str(caregiver.id),
             "sender_email": caregiver.email,
             "sender_full_name": caregiver.full_name,
+            Keys.ACCEPT_URL: accept_url,
         },
     }
 
@@ -140,9 +161,9 @@ async def list_sent_invitations(caregiverId: str, db: Session = Depends(get_db))
             **(
                 (
                     lambda u: {
-                        "sender_id": str(u.id) if u else None,
-                        "sender_email": u.email if u else None,
-                        "sender_full_name": u.full_name if u else None,
+                        Keys.SENDER_ID: str(u.id) if u else None,
+                        Keys.SENDER_EMAIL: u.email if u else None,
+                        Keys.SENDER_FULL_NAME: u.full_name if u else None,
                     }
                 )(
                     db.scalar(
@@ -202,9 +223,9 @@ async def list_recipient_invitations(recipientId: str, db: Session = Depends(get
             **(
                 (
                     lambda u: {
-                        "sender_id": str(u.id) if u else None,
-                        "sender_email": u.email if u else None,
-                        "sender_full_name": u.full_name if u else None,
+                        Keys.SENDER_ID: str(u.id) if u else None,
+                        Keys.SENDER_EMAIL: u.email if u else None,
+                        Keys.SENDER_FULL_NAME: u.full_name if u else None,
                     }
                 )(
                     db.scalar(
@@ -297,6 +318,23 @@ async def create_recipient_invitation(
     db.add(inv)
     db.commit()
     db.refresh(inv)
+    # Build deep link accept URL for caregiver
+    try:
+        token = sign_invite(
+            {
+                "invitationId": str(inv.id),
+                "role": Roles.CAREGIVER,
+                "caregiverId": str(caregiver.id) if caregiver else None,
+            }
+        )
+        accept_url = f"{DeepLink.SCHEME}://{DeepLink.INVITE_ACCEPT_PATH}?token={token}"
+    except Exception:
+        accept_url = None
+    # Send email to caregiver email provided
+    try:
+        send_invite_email(to_email=str(payload.email), accept_url=accept_url)
+    except Exception:
+        pass
     return {
         Keys.MESSAGE: Messages.INVITATION_SENT,
         Keys.DATA: {
@@ -308,6 +346,7 @@ async def create_recipient_invitation(
             "sender_id": str(recipient.id),
             "sender_email": recipient.email,
             "sender_full_name": recipient.full_name,
+            Keys.ACCEPT_URL: accept_url,
         },
     }
 
@@ -374,12 +413,52 @@ async def list_recipient_sent_invitations(recipientId: str, db: Session = Depend
             Keys.STATUS: i.status,
             "sent_by": i.sent_by,
             # Sender is the recipient in this view
-            "sender_id": str(recipient.id),
-            "sender_email": recipient.email,
-            "sender_full_name": recipient.full_name,
+            Keys.SENDER_ID: str(recipient.id),
+            Keys.SENDER_EMAIL: recipient.email,
+            Keys.SENDER_FULL_NAME: recipient.full_name,
         }
         for i in invs
     ]
     return {Keys.RECIPIENT_ID: recipientId, Keys.ITEMS: items}
 
+
+# Accept by signed token (no auth required)
+@public_invites_router.post("/accept-by-token", summary=Summaries.INVITATION_ACCEPT)
+async def accept_by_token(payload: Dict[str, Any] = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
+    from backend.services.invite_signing import verify_invite
+
+    token = (payload or {}).get(Keys.TOKEN)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.MISSING_TOKEN)
+    try:
+        data = verify_invite(token)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.INVALID_TOKEN)
+    invitation_id = data.get("invitationId")
+    role = data.get("role")
+    if not invitation_id or role not in (Roles.RECIPIENT, Roles.CAREGIVER):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.INVALID_PAYLOAD)
+    try:
+        inv_uuid = uuid.UUID(str(invitation_id))
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    invitation = db.scalar(
+        select(Invitation).where(Invitation.id == inv_uuid, Invitation.status == InvitationStatus.PENDING)
+    )
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.USER_NOT_FOUND)
+    # Ensure both sides are known
+    if role == Roles.RECIPIENT:
+        if invitation.recipient_id is None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Errors.RECIPIENT_NOT_REGISTERED)
+    else:
+        if invitation.caregiver_id is None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Errors.CAREGIVER_NOT_REGISTERED)
+    # Accept and create access
+    invitation.status = InvitationStatus.ACCEPTED
+    access = RecipientCaregiverAccess(recipient_id=invitation.recipient_id, caregiver_id=invitation.caregiver_id)
+    db.add(access)
+    db.commit()
+    db.refresh(invitation)
+    return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.INVITATION_ID: str(invitation.id)}
 

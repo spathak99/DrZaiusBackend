@@ -232,6 +232,9 @@ class Errors:
     INVALID_CREDENTIALS: Final[str] = "invalid_credentials"
     UNAUTHORIZED: Final[str] = "unauthorized"
     MALFORMED_TOKEN: Final[str] = "malformed_token"
+    MISSING_TOKEN: Final[str] = "missing_token"
+    INVALID_TOKEN: Final[str] = "invalid_token"
+    INVALID_PAYLOAD: Final[str] = "invalid_payload"
     RECIPIENT_NOT_FOUND: Final[str] = "recipient_not_found"
     CHAT_HISTORY_URI_NOT_SET: Final[str] = "chat_history_uri_not_set"
     GROUP_NOT_FOUND: Final[str] = "group_not_found"
@@ -241,6 +244,8 @@ class Errors:
     DB_UNAVAILABLE: Final[str] = "db_unavailable"
     MISSING_INGESTION_CONFIG: Final[str] = "missing_ingestion_config"
     INCORRECT_PASSWORD: Final[str] = "incorrect_password"
+    RECIPIENT_NOT_REGISTERED: Final[str] = "recipient_not_registered"
+    CAREGIVER_NOT_REGISTERED: Final[str] = "caregiver_not_registered"
 
 
 class Defaults:
@@ -276,6 +281,7 @@ class Keys:
     ITEMS: Final[str] = "items"
     DATA: Final[str] = "data"
     STATUS: Final[str] = "status"
+    ACCEPT_URL: Final[str] = "acceptUrl"
     JOB_ID: Final[str] = "jobId"
     PROJECT_ID: Final[str] = "projectId"
     BUCKET: Final[str] = "bucket"
@@ -292,6 +298,10 @@ class Keys:
     USER_ID: Final[str] = "userId"
     GROUP_ID: Final[str] = "groupId"
     RESULTS: Final[str] = "results"
+    SENDER_ID: Final[str] = "sender_id"
+    SENDER_EMAIL: Final[str] = "sender_email"
+    SENDER_FULL_NAME: Final[str] = "sender_full_name"
+    TOKEN: Final[str] = "token"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"
@@ -325,6 +335,8 @@ class DocKeys:
 class MimeTypes:
     APPLICATION_PDF: Final[str] = "application/pdf"
     APPLICATION_OCTET_STREAM: Final[str] = "application/octet-stream"
+    TEXT_PLAIN: Final[str] = "text/plain"
+    TEXT_HTML: Final[str] = "text/html"
 
 
 class ChatKeys:
@@ -360,3 +372,16 @@ class Tables:
     FILES: Final[str] = "files"
     FILE_ACCESS: Final[str] = "file_access"
     INVITATIONS: Final[str] = "invitations"
+
+
+class DeepLink:
+    SCHEME: Final[str] = "drzaius"
+    INVITE_ACCEPT_PATH: Final[str] = "invite/accept"
+
+
+class Email:
+    SUBJECT_INVITE: Final[str] = "You have a caregiver invitation"
+
+
+class Urls:
+    SENDGRID_API_SEND: Final[str] = "https://api.sendgrid.com/v3/mail/send"
