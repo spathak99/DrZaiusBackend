@@ -419,6 +419,27 @@ class PaymentCodeStatus:
     EXPIRED: Final[str] = "expired"
     REDEEMED: Final[str] = "redeemed"
 
+class Pagination:
+    DEFAULT_LIMIT: Final[int] = 50
+    MAX_LIMIT: Final[int] = 100
+    DEFAULT_OFFSET: Final[int] = 0
+
+class PaymentCodes:
+    CODE_BYTES: Final[int] = 12
+
+
+class LogEvents:
+    GROUP_CREATED: Final[str] = "group_created"
+    GROUP_UPDATED: Final[str] = "group_updated"
+    GROUP_DELETED: Final[str] = "group_deleted"
+    GROUP_MEMBER_ADDED: Final[str] = "group_member_added"
+    GROUP_MEMBER_ROLE_CHANGED: Final[str] = "group_member_role_changed"
+    GROUP_MEMBER_REMOVED: Final[str] = "group_member_removed"
+    GROUP_MEMBER_LEFT: Final[str] = "group_member_left"
+    PAYMENT_CODE_CREATED: Final[str] = "payment_code_created"
+    PAYMENT_CODE_VOIDED: Final[str] = "payment_code_voided"
+    PAYMENT_CODE_REDEEMED: Final[str] = "payment_code_redeemed"
+
 
 class DeepLink:
     SCHEME: Final[str] = "drzaius"

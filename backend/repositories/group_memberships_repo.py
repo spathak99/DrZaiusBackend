@@ -51,6 +51,14 @@ class GroupMembershipsRepository:
 		).all()
 
 	def add(self, db: Session, *, group_id: str, user_id: str, role: str) -> GroupMembership:
+		existing = self.get(db, group_id=group_id, user_id=user_id)
+		if existing:
+			# Idempotent: update role if changed and return existing
+			if existing.role != role:
+				existing.role = role
+				db.commit()
+				db.refresh(existing)
+			return existing
 		row = GroupMembership(group_id=group_id, user_id=user_id, role=role)
 		db.add(row)
 		db.commit()

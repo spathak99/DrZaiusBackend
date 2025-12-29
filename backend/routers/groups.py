@@ -3,11 +3,14 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers
+from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers, Pagination as PaginationConsts
 from backend.db.database import get_db
 from backend.routers.deps import get_current_user
 from backend.db.models import User
 from backend.services.groups_service import GroupsService, MembershipsService
+from backend.repositories.groups_repo import GroupsRepository
+from backend.repositories.group_memberships_repo import GroupMembershipsRepository
+from backend.utils.pagination import clamp_limit_offset
 from backend.schemas.groups import (
     GroupCreate,
     GroupUpdate,
@@ -21,6 +24,12 @@ from backend.schemas.groups import (
 )
 
 router = APIRouter(prefix=Prefix.GROUPS, tags=[Tags.GROUPS], dependencies=[Depends(get_current_user)])
+
+def get_groups_service() -> GroupsService:
+    return GroupsService(groups_repo=GroupsRepository(), members_repo=GroupMembershipsRepository())
+
+def get_memberships_service() -> MembershipsService:
+    return MembershipsService(groups_repo=GroupsRepository(), memberships_repo=GroupMembershipsRepository())
 
 
 def _raise(detail: str) -> None:
@@ -46,8 +55,8 @@ async def create_group(
     payload: GroupCreate = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    svc: GroupsService = Depends(get_groups_service),
 ) -> Dict[str, Any]:
-    svc = GroupsService()
     data = svc.create(db, name=payload.name, description=payload.description, created_by=str(current_user.id))
     return {"data": GroupDetail(**{
         "id": data.get("id"),
@@ -59,16 +68,14 @@ async def create_group(
 
 
 @router.get(Routes.ROOT, summary=Summaries.GROUPS_LIST, response_model=GroupsListEnvelope)
-async def list_my_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
-    svc = GroupsService()
+async def list_my_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: GroupsService = Depends(get_groups_service)) -> Dict[str, Any]:
     rows = svc.list_mine(db, user_id=str(current_user.id))
     items = [GroupListItem(id=r["id"], name=r["name"], description=r.get("description")) for r in rows]
     return {"items": items}
 
 
 @router.get(Routes.ID, summary=Summaries.GROUP_GET, response_model=GroupDetailEnvelope)
-async def get_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
-    svc = GroupsService()
+async def get_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: GroupsService = Depends(get_groups_service)) -> Dict[str, Any]:
     try:
         data = svc.get(db, group_id=id, user_id=str(current_user.id))
     except ValueError as e:
@@ -88,8 +95,8 @@ async def update_group(
     payload: GroupUpdate = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    svc: GroupsService = Depends(get_groups_service),
 ) -> Dict[str, Any]:
-    svc = GroupsService()
     try:
         data = svc.update(db, group_id=id, user_id=str(current_user.id), name=payload.name, description=payload.description)
     except ValueError as e:
@@ -104,8 +111,7 @@ async def update_group(
 
 
 @router.delete(Routes.ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_DELETE)
-async def delete_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
-    svc = GroupsService()
+async def delete_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: GroupsService = Depends(get_groups_service)) -> None:
     try:
         svc.delete(db, group_id=id, user_id=str(current_user.id))
     except ValueError as e:
@@ -117,19 +123,21 @@ async def delete_group(id: str, current_user: User = Depends(get_current_user), 
 async def list_members(
     id: str,
     response: Response,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = PaginationConsts.DEFAULT_LIMIT,
+    offset: int = PaginationConsts.DEFAULT_OFFSET,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    svc: MembershipsService = Depends(get_memberships_service),
 ) -> Dict[str, Any]:
-    svc = MembershipsService()
+    # Clamp pagination params
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
     try:
-		result = svc.list_by_group(db, group_id=id, actor_id=str(current_user.id), limit=limit, offset=offset)
+        result = svc.list_by_group(db, group_id=id, actor_id=str(current_user.id), limit=limit, offset=offset)
     except ValueError as e:
         _raise(str(e))
-	items = [MembershipItem(id=r["id"], userId=r["user_id"] if "user_id" in r else r.get("userId") or r[Keys.USER_ID], role=r["role"]) for r in result[Keys.ITEMS]]  # tolerate key naming
-	response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
-    return {"items": items}
+    items = [MembershipItem(id=r["id"], userId=r["user_id"] if "user_id" in r else r.get("userId") or r[Keys.USER_ID], role=r["role"]) for r in result[Keys.ITEMS]]  # tolerate key naming
+    response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
+    return {Keys.ITEMS: items}
 
 
 @router.post(Routes.ID + Routes.ACCESS, summary=Summaries.GROUP_MEMBER_ADD, response_model=ActionEnvelope)
@@ -138,8 +146,8 @@ async def add_member(
     payload: MemberAdd = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    svc: MembershipsService = Depends(get_memberships_service),
 ) -> Dict[str, Any]:
-    svc = MembershipsService()
     try:
         svc.add(db, group_id=id, actor_id=str(current_user.id), user_id=payload.userId, role=payload.role or GroupRoles.MEMBER)
     except ValueError as e:
@@ -154,8 +162,8 @@ async def change_role(
     payload: MemberRoleUpdate = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    svc: MembershipsService = Depends(get_memberships_service),
 ) -> Dict[str, Any]:
-    svc = MembershipsService()
     try:
         svc.change_role(db, group_id=id, actor_id=str(current_user.id), user_id=userId, role=payload.role)
     except ValueError as e:
@@ -164,8 +172,7 @@ async def change_role(
 
 
 @router.delete(Routes.ID + Routes.ACCESS + Routes.USER_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_MEMBER_REMOVE)
-async def remove_member(id: str, userId: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
-    svc = MembershipsService()
+async def remove_member(id: str, userId: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: MembershipsService = Depends(get_memberships_service)) -> None:
     try:
         svc.remove(db, group_id=id, actor_id=str(current_user.id), user_id=userId)
     except ValueError as e:
@@ -174,8 +181,7 @@ async def remove_member(id: str, userId: str, current_user: User = Depends(get_c
 
 
 @router.post(Routes.ID + Routes.ACCESS + Routes.SELF, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_LEAVE)
-async def leave_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
-    svc = MembershipsService()
+async def leave_group(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: MembershipsService = Depends(get_memberships_service)) -> None:
     try:
         svc.leave(db, group_id=id, user_id=str(current_user.id))
     except ValueError as e:

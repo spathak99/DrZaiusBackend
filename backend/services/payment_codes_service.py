@@ -7,17 +7,23 @@ import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
-from backend.core.constants import Errors, Keys, Messages, GroupRoles, PaymentCodeStatus
+from backend.core.constants import Errors, Keys, Messages, GroupRoles, PaymentCodeStatus, LogEvents, PaymentCodes
 from backend.repositories.payment_codes_repo import PaymentCodesRepository
 from backend.repositories.group_memberships_repo import GroupMembershipsRepository
 from backend.repositories.groups_repo import GroupsRepository
 
 
 class PaymentCodesService:
-	def __init__(self) -> None:
-		self.repo = PaymentCodesRepository()
-		self.members = GroupMembershipsRepository()
-		self.groups = GroupsRepository()
+	def __init__(
+		self,
+		*,
+		repo: PaymentCodesRepository | None = None,
+		members: GroupMembershipsRepository | None = None,
+		groups: GroupsRepository | None = None,
+	) -> None:
+		self.repo = repo or PaymentCodesRepository()
+		self.members = members or GroupMembershipsRepository()
+		self.groups = groups or GroupsRepository()
 		self.logger = logging.getLogger(__name__)
 
 	def _ensure_admin(self, db: Session, *, group_id: str, actor_id: str) -> None:
@@ -25,7 +31,7 @@ class PaymentCodesService:
 		if m is None or m.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 
-	def _gen_code(self, length: int = 20) -> str:
+	def _gen_code(self, length: int = PaymentCodes.CODE_BYTES) -> str:
 		# URL-safe token
 		return base64.urlsafe_b64encode(secrets.token_bytes(length)).decode("utf-8").rstrip("=")
 
@@ -34,9 +40,9 @@ class PaymentCodesService:
 		expires_at = None
 		if ttl_minutes and ttl_minutes > 0:
 			expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
-		code = self._gen_code(12)
+		code = self._gen_code(PaymentCodes.CODE_BYTES)
 		row = self.repo.create(db, group_id=group_id, code=code, created_by=actor_id, expires_at=expires_at)
-		self.logger.info("payment code created", extra={"groupId": group_id, "actorId": actor_id, "code": code})
+		self.logger.info(LogEvents.PAYMENT_CODE_CREATED, extra={"groupId": group_id, "actorId": actor_id, "code": code})
 		return {Keys.CODE: row.code, Keys.STATUS: row.status, Keys.EXPIRES_AT: row.expires_at}
 
 	def list_codes(self, db: Session, *, group_id: str, actor_id: str) -> List[Dict[str, Any]]:
@@ -50,7 +56,7 @@ class PaymentCodesService:
 		if row is None or str(row.group_id) != str(group_id):
 			raise ValueError(Errors.PAYMENT_CODE_NOT_FOUND)
 		self.repo.void(db, row=row)
-		self.logger.info("payment code voided", extra={"groupId": group_id, "actorId": actor_id, "code": code})
+		self.logger.info(LogEvents.PAYMENT_CODE_VOIDED, extra={"groupId": group_id, "actorId": actor_id, "code": code})
 		return {Keys.CODE: code, Keys.STATUS: PaymentCodeStatus.EXPIRED}
 
 	def redeem(self, db: Session, *, code: str, user_id: str) -> Dict[str, Any]:
@@ -65,7 +71,7 @@ class PaymentCodesService:
 			self.repo.void(db, row=row)
 			raise ValueError(Errors.PAYMENT_CODE_EXPIRED)
 		self.repo.mark_redeemed(db, row=row, user_id=user_id)
-		self.logger.info("payment code redeemed", extra={"groupId": str(row.group_id), "actorId": user_id, "code": code})
+		self.logger.info(LogEvents.PAYMENT_CODE_REDEEMED, extra={"groupId": str(row.group_id), "actorId": user_id, "code": code})
 		return {Keys.MESSAGE: Messages.PAYMENT_CODE_REDEEMED, Keys.CODE: code}
 
 

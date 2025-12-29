@@ -5,21 +5,23 @@ import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from backend.core.constants import Errors, Keys, Fields, GroupRoles
+from backend.core.constants import Errors, Keys, Fields, GroupRoles, LogEvents
 from backend.db.models import Group, GroupMembership, User
 from backend.repositories.groups_repo import GroupsRepository
 from backend.repositories.group_memberships_repo import GroupMembershipsRepository
 
 
 class GroupsService:
-	def __init__(self) -> None:
-		self.groups_repo = GroupsRepository()
-		self.members_repo = GroupMembershipsRepository()
+	def __init__(self, *, groups_repo: GroupsRepository | None = None, members_repo: GroupMembershipsRepository | None = None) -> None:
+		self.groups_repo = groups_repo or GroupsRepository()
+		self.members_repo = members_repo or GroupMembershipsRepository()
 		self.logger = logging.getLogger(__name__)
 
 	def create(self, db: Session, *, name: str, description: Optional[str], created_by: str) -> Dict[str, Any]:
 		group = self.groups_repo.create(db, name=name, description=description, created_by=created_by)
-		self.logger.info("group created", extra={"groupId": str(group.id), "actorId": created_by})
+		# Ensure creator is a member and an admin (idempotent)
+		self.members_repo.add(db, group_id=str(group.id), user_id=created_by, role=GroupRoles.ADMIN)
+		self.logger.info(LogEvents.GROUP_CREATED, extra={"groupId": str(group.id), "actorId": created_by})
 		return {
 			Fields.ID: str(group.id),
 			Fields.NAME: group.name,
@@ -49,7 +51,7 @@ class GroupsService:
 		group = self.groups_repo.update_name(db, group_id=group_id, name=name, description=description)
 		if group is None:
 			raise ValueError(Errors.GROUP_NOT_FOUND)
-		self.logger.info("group updated", extra={"groupId": str(group.id), "actorId": user_id})
+		self.logger.info(LogEvents.GROUP_UPDATED, extra={"groupId": str(group.id), "actorId": user_id})
 		return {
 			Fields.ID: str(group.id),
 			Fields.NAME: group.name,
@@ -64,14 +66,14 @@ class GroupsService:
 		if mine is None or mine.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 		self.groups_repo.delete(db, group_id=group_id)
-		self.logger.info("group deleted", extra={"groupId": group_id, "actorId": user_id})
+		self.logger.info(LogEvents.GROUP_DELETED, extra={"groupId": group_id, "actorId": user_id})
 		return
 
 
 class MembershipsService:
-	def __init__(self) -> None:
-		self.groups_repo = GroupsRepository()
-		self.repo = GroupMembershipsRepository()
+	def __init__(self, *, groups_repo: GroupsRepository | None = None, memberships_repo: GroupMembershipsRepository | None = None) -> None:
+		self.groups_repo = groups_repo or GroupsRepository()
+		self.repo = memberships_repo or GroupMembershipsRepository()
 		self.logger = logging.getLogger(__name__)
 
 	def _ensure_admin(self, db: Session, *, group_id: str, actor_id: str) -> None:
@@ -92,7 +94,7 @@ class MembershipsService:
 	def add(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str = GroupRoles.MEMBER) -> Dict[str, Any]:
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		row = self.repo.add(db, group_id=group_id, user_id=user_id, role=role)
-		self.logger.info("group member added", extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
+		self.logger.info(LogEvents.GROUP_MEMBER_ADDED, extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def change_role(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str) -> Dict[str, Any]:
@@ -111,7 +113,7 @@ class MembershipsService:
 			# revert
 			self.repo.change_role(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
-		self.logger.info("group member role changed", extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
+		self.logger.info(LogEvents.GROUP_MEMBER_ROLE_CHANGED, extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def remove(self, db: Session, *, group_id: str, actor_id: str, user_id: str) -> None:
@@ -131,7 +133,7 @@ class MembershipsService:
 			# undo by re-adding as admin
 			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
-		self.logger.info("group member removed", extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": m.role})
+		self.logger.info(LogEvents.GROUP_MEMBER_REMOVED, extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": m.role})
 		return
 
 	def leave(self, db: Session, *, group_id: str, user_id: str) -> None:
@@ -150,7 +152,7 @@ class MembershipsService:
 			# re-add as admin (can't leave if last admin)
 			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
-		self.logger.info("group member left", extra={"groupId": group_id, "actorId": user_id, "targetUserId": user_id, "role": m.role})
+		self.logger.info(LogEvents.GROUP_MEMBER_LEFT, extra={"groupId": group_id, "actorId": user_id, "targetUserId": user_id, "role": m.role})
 		return
 
 

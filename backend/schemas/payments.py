@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Optional, List
+from datetime import datetime
 from pydantic import BaseModel
 
 
@@ -11,13 +12,13 @@ class CodeCreateRequest(BaseModel):
 class CodeCreateResponse(BaseModel):
 	code: str
 	status: str
-	expires_at: Optional[str] = None
+	expires_at: Optional[datetime] = None
 
 
 class CodeListItem(BaseModel):
 	code: str
 	status: str
-	expires_at: Optional[str] = None
+	expires_at: Optional[datetime] = None
 	redeemed_by: Optional[str] = None
 
 
