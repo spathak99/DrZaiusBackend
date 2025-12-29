@@ -76,6 +76,12 @@ class Routes:
     EMBEDDINGS: Final[str] = "/embeddings"
     DOWNLOAD: Final[str] = "/download"
     ACCESS: Final[str] = "/access"
+    ROLE: Final[str] = "/role"
+    CODE: Final[str] = "/{code}"
+    PAYMENTS: Final[str] = "/payments"
+    CODES: Final[str] = "/codes"
+    VOID: Final[str] = "/void"
+    REDEEM: Final[str] = "/redeem"
     # Invitations actions
     INVITATION_ACCEPT: Final[str] = "/{invitationId}/accept"
     INVITATION_DECLINE: Final[str] = "/{invitationId}/decline"
@@ -303,6 +309,7 @@ class Fields:
 class Keys:
     MESSAGE: Final[str] = "message"
     ITEMS: Final[str] = "items"
+    TOTAL: Final[str] = "total"
     DATA: Final[str] = "data"
     STATUS: Final[str] = "status"
     ACCEPT_URL: Final[str] = "acceptUrl"

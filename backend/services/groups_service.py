@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -14,9 +15,11 @@ class GroupsService:
 	def __init__(self) -> None:
 		self.groups_repo = GroupsRepository()
 		self.members_repo = GroupMembershipsRepository()
+		self.logger = logging.getLogger(__name__)
 
 	def create(self, db: Session, *, name: str, description: Optional[str], created_by: str) -> Dict[str, Any]:
 		group = self.groups_repo.create(db, name=name, description=description, created_by=created_by)
+		self.logger.info("group created", extra={"groupId": str(group.id), "actorId": created_by})
 		return {
 			Fields.ID: str(group.id),
 			Fields.NAME: group.name,
@@ -46,6 +49,7 @@ class GroupsService:
 		group = self.groups_repo.update_name(db, group_id=group_id, name=name, description=description)
 		if group is None:
 			raise ValueError(Errors.GROUP_NOT_FOUND)
+		self.logger.info("group updated", extra={"groupId": str(group.id), "actorId": user_id})
 		return {
 			Fields.ID: str(group.id),
 			Fields.NAME: group.name,
@@ -57,9 +61,10 @@ class GroupsService:
 	def delete(self, db: Session, *, group_id: str, user_id: str) -> None:
 		# Only admins can delete; must be member
 		mine = self.members_repo.get(db, group_id=group_id, user_id=user_id)
-		if mine is None or mine.role != "admin":
+		if mine is None or mine.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 		self.groups_repo.delete(db, group_id=group_id)
+		self.logger.info("group deleted", extra={"groupId": group_id, "actorId": user_id})
 		return
 
 
@@ -67,23 +72,27 @@ class MembershipsService:
 	def __init__(self) -> None:
 		self.groups_repo = GroupsRepository()
 		self.repo = GroupMembershipsRepository()
+		self.logger = logging.getLogger(__name__)
 
 	def _ensure_admin(self, db: Session, *, group_id: str, actor_id: str) -> None:
 		m = self.repo.get(db, group_id=group_id, user_id=actor_id)
 		if m is None or m.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 
-	def list_by_group(self, db: Session, *, group_id: str, actor_id: str) -> List[Dict[str, Any]]:
+	def list_by_group(self, db: Session, *, group_id: str, actor_id: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
 		# Any member can list
 		m = self.repo.get(db, group_id=group_id, user_id=actor_id)
 		if m is None:
 			raise ValueError(Errors.FORBIDDEN)
-		rows = self.repo.list_by_group(db, group_id=group_id)
-		return [{Fields.ID: str(r.id), Keys.USER_ID: str(r.user_id), Fields.ROLE: r.role} for r in rows]
+		total = self.repo.count_by_group(db, group_id=group_id)
+		rows = self.repo.list_by_group_paginated(db, group_id=group_id, limit=limit, offset=offset)
+		items = [{Fields.ID: str(r.id), Keys.USER_ID: str(r.user_id), Fields.ROLE: r.role} for r in rows]
+		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
-	def add(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str = "member") -> Dict[str, Any]:
+	def add(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str = GroupRoles.MEMBER) -> Dict[str, Any]:
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		row = self.repo.add(db, group_id=group_id, user_id=user_id, role=role)
+		self.logger.info("group member added", extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def change_role(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str) -> Dict[str, Any]:
@@ -102,6 +111,7 @@ class MembershipsService:
 			# revert
 			self.repo.change_role(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
+		self.logger.info("group member role changed", extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def remove(self, db: Session, *, group_id: str, actor_id: str, user_id: str) -> None:
@@ -121,6 +131,7 @@ class MembershipsService:
 			# undo by re-adding as admin
 			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
+		self.logger.info("group member removed", extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": m.role})
 		return
 
 	def leave(self, db: Session, *, group_id: str, user_id: str) -> None:
@@ -139,6 +150,7 @@ class MembershipsService:
 			# re-add as admin (can't leave if last admin)
 			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
+		self.logger.info("group member left", extra={"groupId": group_id, "actorId": user_id, "targetUserId": user_id, "role": m.role})
 		return
 
 

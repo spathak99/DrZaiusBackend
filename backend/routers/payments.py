@@ -32,7 +32,7 @@ def _raise(detail: str) -> None:
 	raise HTTPException(status_code=code, detail=detail)
 
 
-@router.post(Prefix.GROUPS + Routes.ID + "/payments/codes", response_model=CodeCreateResponse, summary=Summaries.PAYMENT_CODE_CREATE)
+@router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodeCreateResponse, summary=Summaries.PAYMENT_CODE_CREATE)
 async def create_code(
 	id: str,
 	payload: CodeCreateRequest = Body(default=None),
@@ -47,7 +47,7 @@ async def create_code(
 	return {"code": data.get(Keys.CODE), "status": data.get(Keys.STATUS), "expires_at": data.get("expires_at")}
 
 
-@router.get(Prefix.GROUPS + Routes.ID + "/payments/codes", response_model=CodesListEnvelope, summary=Summaries.PAYMENT_CODES_LIST)
+@router.get(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodesListEnvelope, summary=Summaries.PAYMENT_CODES_LIST)
 async def list_codes(
 	id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -60,7 +60,7 @@ async def list_codes(
 	return {"items": items}
 
 
-@router.post(Prefix.GROUPS + Routes.ID + "/payments/codes/{code}/void", summary=Summaries.PAYMENT_CODE_VOID, status_code=status.HTTP_204_NO_CONTENT)
+@router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES + Routes.CODE + Routes.VOID, summary=Summaries.PAYMENT_CODE_VOID, status_code=status.HTTP_204_NO_CONTENT)
 async def void_code(
 	id: str, code: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> None:
@@ -72,7 +72,7 @@ async def void_code(
 	return
 
 
-@router.post("/payments/redeem", response_model=RedeemResponse, summary=Summaries.PAYMENT_CODE_REDEEM)
+@router.post(Routes.PAYMENTS + Routes.REDEEM, response_model=RedeemResponse, summary=Summaries.PAYMENT_CODE_REDEEM)
 async def redeem_code(
 	payload: RedeemRequest = Body(default=None),
 	current_user: User = Depends(get_current_user),

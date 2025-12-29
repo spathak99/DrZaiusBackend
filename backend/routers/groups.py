@@ -1,9 +1,9 @@
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages
+from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers
 from backend.db.database import get_db
 from backend.routers.deps import get_current_user
 from backend.db.models import User
@@ -114,13 +114,21 @@ async def delete_group(id: str, current_user: User = Depends(get_current_user), 
 
 
 @router.get(Routes.ID + Routes.ACCESS, summary=Summaries.GROUP_MEMBERS_LIST, response_model=MembershipsListEnvelope)
-async def list_members(id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def list_members(
+    id: str,
+    response: Response,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
     svc = MembershipsService()
     try:
-        rows = svc.list_by_group(db, group_id=id, actor_id=str(current_user.id))
+		result = svc.list_by_group(db, group_id=id, actor_id=str(current_user.id), limit=limit, offset=offset)
     except ValueError as e:
         _raise(str(e))
-    items = [MembershipItem(id=r["id"], userId=r["user_id"] if "user_id" in r else r.get("userId") or r[Keys.USER_ID], role=r["role"]) for r in rows]  # tolerate key naming
+	items = [MembershipItem(id=r["id"], userId=r["user_id"] if "user_id" in r else r.get("userId") or r[Keys.USER_ID], role=r["role"]) for r in result[Keys.ITEMS]]  # tolerate key naming
+	response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
     return {"items": items}
 
 
@@ -139,7 +147,7 @@ async def add_member(
     return {"message": Messages.GROUP_MEMBER_ADDED}
 
 
-@router.put(Routes.ID + Routes.ACCESS + Routes.USER_ID + "/role", summary=Summaries.GROUP_MEMBER_UPDATE, response_model=ActionEnvelope)
+@router.put(Routes.ID + Routes.ACCESS + Routes.USER_ID + Routes.ROLE, summary=Summaries.GROUP_MEMBER_UPDATE, response_model=ActionEnvelope)
 async def change_role(
     id: str,
     userId: str,

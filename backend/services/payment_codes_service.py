@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 import base64
 from typing import Any, Dict, List, Optional
+import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,7 @@ class PaymentCodesService:
 		self.repo = PaymentCodesRepository()
 		self.members = GroupMembershipsRepository()
 		self.groups = GroupsRepository()
+		self.logger = logging.getLogger(__name__)
 
 	def _ensure_admin(self, db: Session, *, group_id: str, actor_id: str) -> None:
 		m = self.members.get(db, group_id=group_id, user_id=actor_id)
@@ -34,6 +36,7 @@ class PaymentCodesService:
 			expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
 		code = self._gen_code(12)
 		row = self.repo.create(db, group_id=group_id, code=code, created_by=actor_id, expires_at=expires_at)
+		self.logger.info("payment code created", extra={"groupId": group_id, "actorId": actor_id, "code": code})
 		return {Keys.CODE: row.code, Keys.STATUS: row.status, Keys.EXPIRES_AT: row.expires_at}
 
 	def list_codes(self, db: Session, *, group_id: str, actor_id: str) -> List[Dict[str, Any]]:
@@ -47,7 +50,8 @@ class PaymentCodesService:
 		if row is None or str(row.group_id) != str(group_id):
 			raise ValueError(Errors.PAYMENT_CODE_NOT_FOUND)
 		self.repo.void(db, row=row)
-		return {Keys.CODE: code, Keys.STATUS: "expired"}
+		self.logger.info("payment code voided", extra={"groupId": group_id, "actorId": actor_id, "code": code})
+		return {Keys.CODE: code, Keys.STATUS: PaymentCodeStatus.EXPIRED}
 
 	def redeem(self, db: Session, *, code: str, user_id: str) -> Dict[str, Any]:
 		row = self.repo.get_by_code(db, code=code)
@@ -61,6 +65,7 @@ class PaymentCodesService:
 			self.repo.void(db, row=row)
 			raise ValueError(Errors.PAYMENT_CODE_EXPIRED)
 		self.repo.mark_redeemed(db, row=row, user_id=user_id)
+		self.logger.info("payment code redeemed", extra={"groupId": str(row.group_id), "actorId": user_id, "code": code})
 		return {Keys.MESSAGE: Messages.PAYMENT_CODE_REDEEMED, Keys.CODE: code}
 
 

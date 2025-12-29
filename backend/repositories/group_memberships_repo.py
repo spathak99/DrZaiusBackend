@@ -34,6 +34,22 @@ class GroupMembershipsRepository:
 			or 0
 		)
 
+	def count_by_group(self, db: Session, *, group_id: str) -> int:
+		return int(
+			db.scalar(
+				select(func.count()).select_from(GroupMembership).where(GroupMembership.group_id == group_id)
+			) or 0
+		)
+
+	def list_by_group_paginated(self, db: Session, *, group_id: str, limit: int, offset: int) -> List[GroupMembership]:
+		return db.scalars(
+			select(GroupMembership)
+			.where(GroupMembership.group_id == group_id)
+			.order_by(GroupMembership.created_at)
+			.limit(limit)
+			.offset(offset)
+		).all()
+
 	def add(self, db: Session, *, group_id: str, user_id: str, role: str) -> GroupMembership:
 		row = GroupMembership(group_id=group_id, user_id=user_id, role=role)
 		db.add(row)
