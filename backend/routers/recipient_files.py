@@ -1,8 +1,9 @@
 from typing import Any, Dict, List
 from fastapi import APIRouter, status, Depends, HTTPException, UploadFile, File
+import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors, MimeTypes, Upload
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
 from backend.services import DocsService, IngestionService
@@ -12,6 +13,7 @@ from backend.routers.deps import get_current_user
 from backend.schemas.redaction import RedactUploadResponse
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix=Prefix.RECIPIENT_FILES, tags=[Tags.RECIPIENT_DATA], dependencies=[Depends(get_current_user)])
 docs = DocsService()
 ingestion = IngestionService()
@@ -41,6 +43,13 @@ async def upload_recipient_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
     _assert_can_access_recipient(db, id, current_user)
     content = await file.read()
+    size_bytes = len(content or b"")
+    max_bytes = int(Upload.MAX_UPLOAD_MB) * 1024 * 1024
+    if size_bytes > max_bytes:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=Errors.PAYLOAD_TOO_LARGE)
+    mime = file.content_type or MimeTypes.APPLICATION_OCTET_STREAM
+    if mime not in (MimeTypes.APPLICATION_PDF, MimeTypes.IMAGE_PNG, MimeTypes.IMAGE_JPEG):
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=Errors.UNSUPPORTED_MEDIA_TYPE)
     # If pipeline is enabled, enqueue to temp bucket + Pub/Sub instead of direct RAG
     if settings.enable_pipeline:
         if not user.gcp_project_id or not user.temp_bucket:
@@ -50,12 +59,14 @@ async def upload_recipient_file(
             gcp_project_id=user.gcp_project_id,
             temp_bucket=user.temp_bucket,
             file_name=file.filename or "upload",
-            content_type=file.content_type or "application/octet-stream",
+            content_type=mime,
             content=content,
         )
+        logger.info("file upload queued", extra={"recipientId": id, "mime": mime, "size": size_bytes})
         return {Keys.MESSAGE: Messages.FILE_QUEUED, Keys.RECIPIENT_ID: id, Keys.DATA: job}
     # Default: direct ingestion to RAG
-    created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=file.content_type, content=content)
+    created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=mime, content=content)
+    logger.info("file uploaded direct", extra={"recipientId": id, "mime": mime, "size": size_bytes})
     return {Keys.MESSAGE: Messages.FILE_UPLOADED, Keys.RECIPIENT_ID: id, Keys.DATA: created}
 
 
@@ -107,7 +118,14 @@ async def redact_and_upload_recipient_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
     _assert_can_access_recipient(db, id, current_user)
     raw = await file.read()
-    redacted_bytes, findings = dlp.redact_content(content=raw, mime_type=file.content_type or "application/octet-stream")
+    size_bytes = len(raw or b"")
+    max_bytes = int(Upload.MAX_UPLOAD_MB) * 1024 * 1024
+    if size_bytes > max_bytes:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=Errors.PAYLOAD_TOO_LARGE)
+    mime = file.content_type or MimeTypes.APPLICATION_OCTET_STREAM
+    if mime not in (MimeTypes.APPLICATION_PDF, MimeTypes.IMAGE_PNG, MimeTypes.IMAGE_JPEG):
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=Errors.UNSUPPORTED_MEDIA_TYPE)
+    redacted_bytes, findings = dlp.redact_content(content=raw, mime_type=mime)
     redacted_types: List[str] = sorted({str((f or {}).get("info_type", "")).strip() for f in findings if (f or {}).get("info_type")})
     # Ingestion path
     if settings.enable_pipeline:
@@ -118,9 +136,10 @@ async def redact_and_upload_recipient_file(
             gcp_project_id=user.gcp_project_id,
             temp_bucket=user.temp_bucket,
             file_name=file.filename or "upload",
-            content_type=file.content_type or "application/octet-stream",
+            content_type=mime,
             content=redacted_bytes,
         )
+        logger.info("file redact+upload queued", extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
         return {
             Keys.MESSAGE: Messages.FILE_QUEUED,
             Keys.RECIPIENT_ID: id,
@@ -130,9 +149,10 @@ async def redact_and_upload_recipient_file(
     created = docs.upload_doc(
         corpus_uri=user.corpus_uri,
         file_name=file.filename or "upload",
-        content_type=file.content_type or "application/octet-stream",
+        content_type=mime,
         content=redacted_bytes,
     )
+    logger.info("file redacted+uploaded direct", extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
     return {
         Keys.MESSAGE: Messages.FILE_UPLOADED,
         Keys.RECIPIENT_ID: id,

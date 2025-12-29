@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.middleware.base import BaseHTTPMiddleware
+import uuid
 
-from backend.core.constants import API_TITLE, Cors
+from backend.core.constants import API_TITLE, Cors, Keys, Errors, Headers
 from backend.core.settings import get_settings
 from backend.routers import (
     auth,
@@ -42,6 +46,28 @@ if not _settings.invite_signing_secret:
     logger.warning("INVITE_SIGNING_SECRET is not set; invite token verification may fail.")
 if not _settings.email_from:
     logger.warning("EMAIL_FROM is not set; email sender will default to placeholder.")
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get(Headers.REQUEST_ID) or str(uuid.uuid4())
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers[Headers.REQUEST_ID] = request_id
+        return response
+
+app.add_middleware(RequestIdMiddleware)
+
+# Exception handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    body = {Keys.MESSAGE: Errors.INVALID_PAYLOAD, "details": exc.errors(), Keys.REQUEST_ID: getattr(request.state, "request_id", None)}
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=body)
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("unhandled exception", extra={"requestId": getattr(request.state, "request_id", None)})
+    body = {Keys.MESSAGE: Errors.INTERNAL_ERROR, Keys.REQUEST_ID: getattr(request.state, "request_id", None)}
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=body)
 
 # Register routers
 # app.include_router(chats.router)

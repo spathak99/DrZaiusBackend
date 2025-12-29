@@ -249,11 +249,18 @@ class Errors:
     INCORRECT_PASSWORD: Final[str] = "incorrect_password"
     RECIPIENT_NOT_REGISTERED: Final[str] = "recipient_not_registered"
     CAREGIVER_NOT_REGISTERED: Final[str] = "caregiver_not_registered"
+    INTERNAL_ERROR: Final[str] = "internal_error"
+    PAYLOAD_TOO_LARGE: Final[str] = "payload_too_large"
+    UNSUPPORTED_MEDIA_TYPE: Final[str] = "unsupported_media_type"
 
 
 class Defaults:
     # Storage and path defaults
     UPLOADS_PREFIX: Final[str] = "uploads"
+
+class Upload:
+    # Max file size for uploads (in MB)
+    MAX_UPLOAD_MB: Final[int] = 15
 
 class Fields:
     ID: Final[str] = "id"
@@ -294,6 +301,7 @@ class Keys:
     VERTEX_ENABLED: Final[str] = "vertexEnabled"
     DOWNLOAD: Final[str] = "download"
     EMBEDDINGS: Final[str] = "embeddings"
+    REQUEST_ID: Final[str] = "requestId"
     # Entity Id keys
     CHAT_ID: Final[str] = "chatId"
     FILE_ID: Final[str] = "fileId"
@@ -310,6 +318,7 @@ class Keys:
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"
+    REQUEST_ID: Final[str] = "X-Request-Id"
 
 
 class RagKeys:
@@ -343,6 +352,8 @@ class MimeTypes:
     APPLICATION_JSON: Final[str] = "application/json"
     TEXT_PLAIN: Final[str] = "text/plain"
     TEXT_HTML: Final[str] = "text/html"
+    IMAGE_PNG: Final[str] = "image/png"
+    IMAGE_JPEG: Final[str] = "image/jpeg"
 
 
 class ChatKeys:
