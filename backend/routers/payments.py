@@ -36,7 +36,7 @@ async def create_code(
 	except ValueError as e:
 		detail = str(e)
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)
-	return {"code": data.get(Keys.CODE), "status": data.get(Keys.STATUS), "expires_at": data.get("expires_at")}
+	return {Keys.CODE: data.get(Keys.CODE), Keys.STATUS: data.get(Keys.STATUS), Keys.EXPIRES_AT: data.get(Keys.EXPIRES_AT)}
 
 
 @router.get(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodesListEnvelope, summary=Summaries.PAYMENT_CODES_LIST)
