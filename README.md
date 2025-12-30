@@ -206,6 +206,15 @@ curl -i -X POST "http://localhost:8000/redaction/test" \
   -d '{"text":"SSN 123-45-6789 and john@example.com"}'
 ```
 
+### Pagination & Headers
+- All list endpoints that accept `limit`/`offset` clamp values to safe ranges.
+- Responses include `X-Total-Count` to indicate total available items for pagination.
+
+### Encryption (scaffold)
+- Envelope encryption settings are present (ENVIRONMENT.md). When enabled, sensitive fields (e.g., `payment_info`) can be encrypted at rest.
+- Providers: `env` (local DEK), `secret_manager` (GCP Secret Manager), `kms` (Google Cloud KMS planned).
+- Current implementation is scaffolded; KMS/Secret integration will follow.
+
 ## API Routes
 See API routes by area and HTTP verbs in:
 - API_ROUTES.md
