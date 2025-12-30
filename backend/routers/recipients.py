@@ -6,12 +6,13 @@ from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Ke
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
+from backend.schemas.relations import RecipientsListEnvelope
 
 
 router = APIRouter(prefix=Prefix.RECIPIENTS, tags=[Tags.RECIPIENTS], dependencies=[Depends(get_current_user)])
 
 
-@router.get(Routes.ROOT, summary=Summaries.RECIPIENTS_LIST)
+@router.get(Routes.ROOT, summary=Summaries.RECIPIENTS_LIST, response_model=RecipientsListEnvelope)
 async def list_recipients(
     response: Response,
     current_user: User = Depends(get_current_user),

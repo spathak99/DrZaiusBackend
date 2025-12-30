@@ -41,7 +41,7 @@ caregiver_invitations_router = APIRouter(
 recipient_invitations_router = APIRouter(
     prefix=Prefix.RECIPIENT_INVITATIONS, tags=[Tags.ACCESS], dependencies=[Depends(get_current_user)]
 )
-public_invites_router = APIRouter(prefix="/invites", tags=[Tags.ACCESS])
+public_invites_router = APIRouter(prefix=Prefix.INVITES, tags=[Tags.ACCESS])
 
 # Dependency providers
 def get_invitations_service() -> InvitationsService:
