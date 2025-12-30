@@ -1,8 +1,8 @@
 from typing import Any, Dict, List
-from fastapi import APIRouter, Body, status, Depends
+from fastapi import APIRouter, Body, status, Depends, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields, Roles
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields, Roles, Headers
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
@@ -12,7 +12,11 @@ router = APIRouter(prefix=Prefix.RECIPIENTS, tags=[Tags.RECIPIENTS], dependencie
 
 
 @router.get(Routes.ROOT, summary=Summaries.RECIPIENTS_LIST)
-async def list_recipients(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def list_recipients(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
     items: List[Dict[str, Any]] = []
     # If the current user is a caregiver, list recipients they have access to
     if current_user.role == Roles.CAREGIVER:
@@ -24,6 +28,7 @@ async def list_recipients(current_user: User = Depends(get_current_user), db: Se
     else:
         # Current user is a recipient; include self as the only recipient
         items = [{Fields.ID: current_user.id, Fields.FULL_NAME: current_user.full_name or current_user.username}]
+    response.headers[Headers.TOTAL_COUNT] = str(len(items))
     return {Keys.ITEMS: items}
 
 

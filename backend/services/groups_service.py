@@ -41,7 +41,13 @@ class GroupsService:
 		mine = self.members_repo.get(db, group_id=group_id, user_id=user_id)
 		if mine is None:
 			raise ValueError(Errors.FORBIDDEN)
-		return {Fields.ID: str(group.id), Fields.NAME: group.name, Fields.DESCRIPTION: group.description}
+		return {
+			Fields.ID: str(group.id),
+			Fields.NAME: group.name,
+			Fields.DESCRIPTION: group.description,
+			Fields.CREATED_BY: str(group.created_by) if getattr(group, "created_by", None) is not None else "",
+			Fields.CREATED_AT: getattr(group, "created_at", None),
+		}
 
 	def update(self, db: Session, *, group_id: str, user_id: str, name: str, description: Optional[str]) -> Dict[str, Any]:
 		# Only admins can update group

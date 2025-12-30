@@ -5,17 +5,18 @@ from sqlalchemy.orm import Session
 from backend.core.constants import Tags, Summaries, Messages, Routes, Keys, Errors
 from backend.db.database import get_db
 from backend.core.settings import get_settings
+from backend.schemas.ops import HealthzResponse, ReadyzResponse
 
 
 router = APIRouter(tags=[Tags.OPS])
 
 
-@router.get(Routes.HEALTHZ, summary=Summaries.HEALTHZ)
+@router.get(Routes.HEALTHZ, summary=Summaries.HEALTHZ, response_model=HealthzResponse)
 async def healthz() -> Dict[str, Any]:
     return {Keys.STATUS: Messages.OK}
 
 
-@router.get(Routes.READYZ, summary=Summaries.READYZ)
+@router.get(Routes.READYZ, summary=Summaries.READYZ, response_model=ReadyzResponse)
 async def readyz(db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         db.execute(text("SELECT 1"))

@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, status, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys
+from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys, Headers
 from backend.schemas import CaregiverAccessUpdate, RecipientInvitationCreate
 from backend.schemas.access import (
     RecipientCaregiversEnvelope,
@@ -67,9 +67,15 @@ def _err(detail: str) -> str:
 
 @recipient_access_router.get(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVERS_LIST, response_model=RecipientCaregiversEnvelope)
 async def list_recipient_caregivers(
-    recipientId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
+    recipientId: str,
+    response: Response,
+    db: Session = Depends(get_db),
+    access_service: AccessService = Depends(get_access_service),
 ) -> Dict[str, Any]:
-    return access_service.list_recipient_caregivers(db, recipient_id=recipientId)
+    result = access_service.list_recipient_caregivers(db, recipient_id=recipientId)
+    items = result.get(Keys.ITEMS, [])
+    response.headers[Headers.TOTAL_COUNT] = str(len(items))
+    return result
 
 
 @recipient_access_router.post(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVER_ASSIGN, response_model=AccessMutateEnvelope)
@@ -117,9 +123,15 @@ async def update_caregiver_access(
 
 @caregiver_recipients_router.get(Routes.ROOT, summary=Summaries.CAREGIVER_RECIPIENTS_LIST, response_model=CaregiverRecipientsEnvelope)
 async def list_caregiver_recipients(
-    caregiverId: str, db: Session = Depends(get_db), access_service: AccessService = Depends(get_access_service)
+    caregiverId: str,
+    response: Response,
+    db: Session = Depends(get_db),
+    access_service: AccessService = Depends(get_access_service),
 ) -> Dict[str, Any]:
-    return access_service.list_caregiver_recipients(db, caregiver_id=caregiverId)
+    result = access_service.list_caregiver_recipients(db, caregiver_id=caregiverId)
+    items = result.get(Keys.ITEMS, [])
+    response.headers[Headers.TOTAL_COUNT] = str(len(items))
+    return result
 
 
 @caregiver_recipients_router.get(Routes.RECIPIENT_ID, summary=Summaries.CAREGIVER_RECIPIENT_GET, response_model=CaregiverRecipientGetResponse)

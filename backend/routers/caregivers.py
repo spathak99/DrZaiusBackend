@@ -1,8 +1,8 @@
 from typing import Any, Dict, List
-from fastapi import APIRouter, Body, status, Depends
+from fastapi import APIRouter, Body, status, Depends, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields, Roles
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Fields, Roles, Headers
 from backend.routers.deps import get_current_user
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
@@ -12,7 +12,11 @@ router = APIRouter(prefix=Prefix.CAREGIVERS, tags=[Tags.CAREGIVERS], dependencie
 
 
 @router.get(Routes.ROOT, summary=Summaries.CAREGIVERS_LIST)
-async def list_caregivers(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def list_caregivers(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
     # Always list caregivers that have access to this user as recipient,
     # regardless of the user's global role label.
     rows = db.scalars(
@@ -24,11 +28,14 @@ async def list_caregivers(current_user: User = Depends(get_current_user), db: Se
         items: List[Dict[str, Any]] = [
             {Fields.ID: u.id, Fields.FULL_NAME: u.full_name or u.username, Fields.ROLE: u.role} for u in caregivers
         ]
+        response.headers[Headers.TOTAL_COUNT] = str(len(items))
         return {Keys.ITEMS: items}
     # If user has no caregivers assigned and is a caregiver themselves, don't list self
     if current_user.role == Roles.CAREGIVER:
+        response.headers[Headers.TOTAL_COUNT] = "0"
         return {Keys.ITEMS: []}
     # Fallback: if user is a recipient with no caregivers yet, return empty
+    response.headers[Headers.TOTAL_COUNT] = "0"
     return {Keys.ITEMS: []}
 
 

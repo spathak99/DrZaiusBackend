@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from pydantic import BaseModel
 
 from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers, Pagination as PaginationConsts
@@ -34,7 +35,7 @@ def get_memberships_service() -> MembershipsService:
 
 
 class MemberAdd(BaseModel):
-    userId: str
+    email: str
     role: Optional[str] = None
 
 
@@ -145,7 +146,11 @@ async def add_member(
     svc: MembershipsService = Depends(get_memberships_service),
 ) -> Dict[str, Any]:
     try:
-        svc.add(db, group_id=id, actor_id=str(current_user.id), user_id=payload.userId, role=payload.role or GroupRoles.MEMBER)
+        # Resolve by email for consistency with invitations model
+        target = db.scalar(select(User).where(User.email == payload.email))
+        if target is None:
+            raise ValueError(Errors.USER_NOT_FOUND)
+        svc.add(db, group_id=id, actor_id=str(current_user.id), user_id=str(target.id), role=payload.role or GroupRoles.MEMBER)
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
