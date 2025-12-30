@@ -74,6 +74,31 @@ class Settings(BaseSettings):
     )
     sendgrid_api_key: str = Field(default="", description="SendGrid API key; leave empty to disable email send")
     email_from: str = Field(default="no-reply@example.com", description="From address for transactional emails")
+    # Encryption (envelope) settings
+    enable_encryption: bool = Field(
+        default=False,
+        description="When true, encrypt sensitive fields at rest (envelope encryption)",
+    )
+    encryption_provider: str = Field(
+        default="env",
+        description="Key provider: env | secret_manager | kms",
+    )
+    encryption_key_id: str = Field(
+        default="",
+        description="Logical key identifier (e.g., dek_2025_12); used in envelopes",
+    )
+    encryption_env_key_b64: str = Field(
+        default="",
+        description="Base64-encoded DEK when encryption_provider=env",
+    )
+    encryption_secret_id: str = Field(
+        default="",
+        description="Secret Manager secret id for DEK when encryption_provider=secret_manager",
+    )
+    kms_key_name: str = Field(
+        default="",
+        description="KMS key resource name (projects/.../locations/.../keyRings/.../cryptoKeys/...) when provider=kms",
+    )
 
     class Config:
         env_file = ".env"
