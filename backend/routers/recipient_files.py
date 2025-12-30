@@ -3,7 +3,7 @@ from fastapi import APIRouter, status, Depends, HTTPException, UploadFile, File
 import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors, MimeTypes, Upload
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors, MimeTypes, Upload, LogEvents
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
 from backend.services import DocsService, IngestionService
@@ -67,11 +67,11 @@ async def upload_recipient_file(
             content_type=mime,
             content=content,
         )
-        logger.info("file upload queued", extra={"recipientId": id, "mime": mime, "size": size_bytes})
+        logger.info(LogEvents.FILE_QUEUED, extra={"recipientId": id, "mime": mime, "size": size_bytes})
         return {Keys.MESSAGE: Messages.FILE_QUEUED, Keys.RECIPIENT_ID: id, Keys.DATA: job}
     # Default: direct ingestion to RAG
     created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=mime, content=content)
-    logger.info("file uploaded direct", extra={"recipientId": id, "mime": mime, "size": size_bytes})
+    logger.info(LogEvents.FILE_UPLOADED, extra={"recipientId": id, "mime": mime, "size": size_bytes})
     return {Keys.MESSAGE: Messages.FILE_UPLOADED, Keys.RECIPIENT_ID: id, Keys.DATA: created}
 
 
@@ -164,7 +164,7 @@ async def redact_and_upload_recipient_file(
             content_type=mime,
             content=redacted_bytes,
         )
-        logger.info("file redact+upload queued", extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
+        logger.info(LogEvents.FILE_REDACT_QUEUED, extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
         return {
             Keys.MESSAGE: Messages.FILE_QUEUED,
             Keys.RECIPIENT_ID: id,
@@ -177,7 +177,7 @@ async def redact_and_upload_recipient_file(
         content_type=mime,
         content=redacted_bytes,
     )
-    logger.info("file redacted+uploaded direct", extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
+    logger.info(LogEvents.FILE_REDACT_UPLOADED, extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
     return {
         Keys.MESSAGE: Messages.FILE_UPLOADED,
         Keys.RECIPIENT_ID: id,

@@ -453,6 +453,10 @@ class LogEvents:
     INVITATION_SENT: Final[str] = "invitation_sent"
     INVITATION_ACCEPTED: Final[str] = "invitation_accepted"
     INVITATION_DECLINED: Final[str] = "invitation_declined"
+    FILE_QUEUED: Final[str] = "file_queued"
+    FILE_UPLOADED: Final[str] = "file_uploaded"
+    FILE_REDACT_QUEUED: Final[str] = "file_redact_queued"
+    FILE_REDACT_UPLOADED: Final[str] = "file_redact_uploaded"
 
 
 class DeepLink:
