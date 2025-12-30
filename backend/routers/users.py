@@ -3,13 +3,14 @@ from uuid import UUID
 from fastapi import APIRouter, Body, status, Depends, HTTPException, Response, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers, Keys, Routes
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers, Keys, Routes, Pagination as PaginationConsts
 from backend.schemas import UserCreate, UserUpdate, UserResponse
 from backend.schemas.user import UsersListEnvelope
 from backend.db.database import get_db
 from backend.db.models import User, GroupMembership
 from backend.routers.deps import get_current_user
 from backend.schemas.user import UserSettingsUpdate
+from backend.utils.pagination import clamp_limit_offset
 
 
 router = APIRouter(prefix=Prefix.USERS, tags=[Tags.USERS])
@@ -22,6 +23,8 @@ async def list_users(
     offset: int = 0,
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
+    # Clamp pagination for consistency
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
     total = db.scalar(select(func.count()).select_from(User)) or 0
     users = db.scalars(
         select(User).order_by(User.created_at).limit(limit).offset(offset)
