@@ -9,6 +9,17 @@ from backend.core.constants import Errors, Auth as AuthConst, Messages
 from backend.db.database import get_db
 from backend.db.models import User
 from backend.services.auth_service import AuthService
+from backend.services.groups_service import GroupsService, MembershipsService
+from backend.services.payment_codes_service import PaymentCodesService
+from backend.services.invitations_service import InvitationsService
+from backend.services.access_service import AccessService
+from backend.services import DocsService, IngestionService
+from backend.services.dlp_service import DlpService
+from backend.repositories.groups_repo import GroupsRepository
+from backend.repositories.group_memberships_repo import GroupMembershipsRepository
+from backend.repositories.payment_codes_repo import PaymentCodesRepository
+from backend.repositories.invitations_repo import InvitationsRepository
+from backend.repositories.access_repo import AccessRepository
 
 
 auth_service = AuthService()
@@ -42,4 +53,37 @@ def get_current_user(
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Errors.INVALID_CREDENTIALS)
 
+
+
+# Service factories (constructor-based DI)
+def get_groups_service() -> GroupsService:
+	return GroupsService(groups_repo=GroupsRepository(), members_repo=GroupMembershipsRepository())
+
+
+def get_memberships_service() -> MembershipsService:
+	return MembershipsService(groups_repo=GroupsRepository(), memberships_repo=GroupMembershipsRepository())
+
+
+def get_payment_codes_service() -> PaymentCodesService:
+	return PaymentCodesService(repo=PaymentCodesRepository(), members=GroupMembershipsRepository(), groups=GroupsRepository())
+
+
+def get_invitations_service() -> InvitationsService:
+	return InvitationsService(repo=InvitationsRepository())
+
+
+def get_access_service() -> AccessService:
+	return AccessService(repo=AccessRepository())
+
+
+def get_docs_service() -> DocsService:
+	return DocsService()
+
+
+def get_ingestion_service() -> IngestionService:
+	return IngestionService()
+
+
+def get_dlp_service() -> DlpService:
+	return DlpService()
 

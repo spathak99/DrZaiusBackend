@@ -5,6 +5,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Fields, Errors, Headers, Keys, Routes
 from backend.schemas import UserCreate, UserUpdate, UserResponse
+from backend.schemas.user import UsersListEnvelope
 from backend.db.database import get_db
 from backend.db.models import User, GroupMembership
 from backend.routers.deps import get_current_user
@@ -14,7 +15,7 @@ from backend.schemas.user import UserSettingsUpdate
 router = APIRouter(prefix=Prefix.USERS, tags=[Tags.USERS])
 
 
-@router.get("", summary=Summaries.USERS_LIST)
+@router.get("", summary=Summaries.USERS_LIST, response_model=UsersListEnvelope)
 async def list_users(
     response: Response,
     limit: int = 50,

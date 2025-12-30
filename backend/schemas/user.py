@@ -2,6 +2,7 @@ from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel, EmailStr
 from backend.schemas.common import Role, Timestamped, AccountType
+from typing import List
 
 
 class UserCreate(BaseModel):
@@ -52,4 +53,7 @@ class UserSettingsUpdate(BaseModel):
     temp_bucket: Optional[str] = None
     payment_info: Optional[dict] = None
 
+
+class UsersListEnvelope(BaseModel):
+    items: List[UserResponse]
 

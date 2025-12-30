@@ -9,21 +9,14 @@ from backend.db.models import User, RecipientCaregiverAccess
 from backend.services import DocsService, IngestionService
 from backend.services.dlp_service import DlpService
 from backend.core.settings import get_settings
-from backend.routers.deps import get_current_user
+from backend.routers.deps import get_current_user, get_docs_service, get_ingestion_service, get_dlp_service
 from backend.schemas.redaction import RedactUploadResponse
 
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix=Prefix.RECIPIENT_FILES, tags=[Tags.RECIPIENT_DATA], dependencies=[Depends(get_current_user)])
 
-def get_docs_service() -> DocsService:
-	return DocsService()
-
-def get_ingestion_service() -> IngestionService:
-	return IngestionService()
-
-def get_dlp_service() -> DlpService:
-	return DlpService()
+#
 
 settings = get_settings()
 

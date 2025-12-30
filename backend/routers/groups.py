@@ -6,11 +6,9 @@ from pydantic import BaseModel
 
 from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers, Pagination as PaginationConsts
 from backend.db.database import get_db
-from backend.routers.deps import get_current_user
+from backend.routers.deps import get_current_user, get_groups_service, get_memberships_service
 from backend.db.models import User
 from backend.services.groups_service import GroupsService, MembershipsService
-from backend.repositories.groups_repo import GroupsRepository
-from backend.repositories.group_memberships_repo import GroupMembershipsRepository
 from backend.utils.pagination import clamp_limit_offset
 from backend.routers.http_errors import status_for_error
 from backend.schemas.groups import (
@@ -26,12 +24,6 @@ from backend.schemas.groups import (
 )
 
 router = APIRouter(prefix=Prefix.GROUPS, tags=[Tags.GROUPS], dependencies=[Depends(get_current_user)])
-
-def get_groups_service() -> GroupsService:
-    return GroupsService(groups_repo=GroupsRepository(), members_repo=GroupMembershipsRepository())
-
-def get_memberships_service() -> MembershipsService:
-    return MembershipsService(groups_repo=GroupsRepository(), memberships_repo=GroupMembershipsRepository())
 
 
 class MemberAdd(BaseModel):

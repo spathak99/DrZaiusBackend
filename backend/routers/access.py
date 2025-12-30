@@ -18,13 +18,11 @@ from backend.schemas.invitation import (
     CaregiverInvitationActionEnvelope,
     PublicInvitationActionEnvelope,
 )
-from backend.routers.deps import get_current_user
+from backend.routers.deps import get_current_user, get_invitations_service, get_access_service
 from backend.db.database import get_db
 from backend.db.models import Invitation, User, RecipientCaregiverAccess
 from backend.core.constants import Roles
 from backend.services import InvitationsService, AccessService
-from backend.repositories.invitations_repo import InvitationsRepository
-from backend.repositories.access_repo import AccessRepository
 import uuid
 from backend.routers.http_errors import status_for_error
 
@@ -43,13 +41,7 @@ recipient_invitations_router = APIRouter(
 )
 public_invites_router = APIRouter(prefix=Prefix.INVITES, tags=[Tags.ACCESS])
 
-# Dependency providers
-def get_invitations_service() -> InvitationsService:
-    return InvitationsService(repo=InvitationsRepository())
-
-
-def get_access_service() -> AccessService:
-    return AccessService(repo=AccessRepository())
+# Dependency providers moved to deps.py (constructor-based DI)
 
 def _err(detail: str) -> str:
     # Pass through only known error codes; default to invalid_payload

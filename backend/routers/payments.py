@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.constants import Prefix, Tags, Routes, Summaries, Errors, Keys, Headers
 from backend.db.database import get_db
-from backend.routers.deps import get_current_user
+from backend.routers.deps import get_current_user, get_payment_codes_service
 from backend.db.models import User
 from backend.services.payment_codes_service import PaymentCodesService
 from backend.schemas.payments import (
@@ -21,9 +21,6 @@ from backend.routers.http_errors import status_for_error
 from backend.utils.pagination import clamp_limit_offset
 
 router = APIRouter(tags=[Tags.GROUPS])
-
-def get_payment_codes_service() -> PaymentCodesService:
-	return PaymentCodesService()
 
 
 @router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodeCreateResponse, summary=Summaries.PAYMENT_CODE_CREATE)
