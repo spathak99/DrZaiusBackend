@@ -19,8 +19,8 @@ router = APIRouter(prefix=Prefix.USERS, tags=[Tags.USERS])
 @router.get("", summary=Summaries.USERS_LIST, response_model=UsersListEnvelope)
 async def list_users(
     response: Response,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = PaginationConsts.DEFAULT_LIMIT,
+    offset: int = PaginationConsts.DEFAULT_OFFSET,
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     # Clamp pagination for consistency

@@ -60,7 +60,7 @@ async def list_codes(
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)
 	items = [CodeListItem(code=r.get(Keys.CODE), status=r.get(Keys.STATUS), expires_at=r.get(Keys.EXPIRES_AT), redeemed_by=r.get(Keys.REDEEMED_BY)) for r in result[Keys.ITEMS]]
 	response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
-	return {"items": items}
+	return {Keys.ITEMS: items}
 
 
 @router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES + Routes.CODE + Routes.VOID, summary=Summaries.PAYMENT_CODE_VOID, status_code=status.HTTP_204_NO_CONTENT)
