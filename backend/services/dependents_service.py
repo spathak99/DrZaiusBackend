@@ -73,7 +73,7 @@ class DependentsService:
 			raise ValueError(Errors.USER_NOT_FOUND)
 		# Admin or guardian can convert
 		ensure_admin_or_guardian(self.memberships, db, group_id=group_id, actor_id=actor_id, guardian_user_id=str(row.guardian_user_id))
-		target_email = (row.email or email or "").strip()
+		target_email = (row.email or email or "").strip().lower()
 		if not target_email:
 			raise ValueError(Errors.INVALID_PAYLOAD)
 		# Create or get user

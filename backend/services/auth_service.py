@@ -116,7 +116,10 @@ class AuthService:
         temp_bucket: Optional[str] = None,
         payment_info: Optional[Dict[str, Any]] = None,
     ) -> Tuple[User, str]:
-        # Uniqueness checks
+        # normalize email/username casing BEFORE uniqueness checks
+        username = (username or "").strip().lower()
+        email = (email or "").strip().lower()
+        # Uniqueness checks (normalized)
         if db.scalar(select(User).where(User.username == username)) is not None:
             raise ValueError(Errors.USERNAME_TAKEN)
         if db.scalar(select(User).where(User.email == email)) is not None:
@@ -161,6 +164,8 @@ class AuthService:
         return user, token
 
     def login(self, db: Session, *, username: str, password: str) -> Tuple[User, str]:
+        # normalize username/email for lookup
+        username = (username or "").strip().lower()
         user = db.scalar(select(User).where(User.username == username))
         if user is None or not verify_password(password, user.password_hash):
             raise ValueError(Errors.INVALID_CREDENTIALS)

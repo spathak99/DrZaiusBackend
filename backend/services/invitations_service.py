@@ -74,6 +74,7 @@ class InvitationsService:
 		return data
 
 	def send_from_caregiver(self, db: Session, *, caregiver_id: str, email: str) -> Dict[str, Any]:
+		email = (email or "").strip().lower()
 		caregiver = db.scalar(select(User).where(User.id == caregiver_id))
 		if caregiver is None:
 			raise ValueError(Errors.USER_NOT_FOUND)
@@ -91,6 +92,7 @@ class InvitationsService:
 		return self._map_created(inv, caregiver, accept_url)
 
 	def send_from_recipient(self, db: Session, *, recipient_id: str, email: str) -> Dict[str, Any]:
+		email = (email or "").strip().lower()
 		recipient = db.scalar(select(User).where(User.id == recipient_id))
 		if recipient is None:
 			raise ValueError(Errors.RECIPIENT_NOT_FOUND)

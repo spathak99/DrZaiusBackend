@@ -255,7 +255,7 @@ async def add_member(
 ) -> Dict[str, Any]:
     try:
         # Resolve by email for consistency with invitations model
-        target = db.scalar(select(User).where(User.email == payload.email))
+        target = db.scalar(select(User).where(User.email == (payload.email or "").strip().lower()))
         if target is None:
             raise ValueError(Errors.USER_NOT_FOUND)
         svc.add(db, group_id=id, actor_id=str(current_user.id), user_id=str(target.id), role=payload.role or GroupRoles.MEMBER)
@@ -337,9 +337,9 @@ async def list_group_member_invites(
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    items = [GroupMemberInviteItem(**it) for it in result.get("items", [])]
-    response.headers[Headers.TOTAL_COUNT] = str(result.get("total", len(items)))
-    return {"items": items}
+    items = [GroupMemberInviteItem(**it) for it in result.get(Keys.ITEMS, [])]
+    response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
+    return {Keys.ITEMS: items}
 
 
 @router.post(Routes.ID + Routes.ACCESS + Routes.SELF, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_LEAVE)

@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, status, Depends, HTTPException, Response, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys, Headers
+from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys, Headers, Pagination as PaginationConsts
 from backend.schemas import CaregiverAccessUpdate, RecipientInvitationCreate
 from backend.schemas.access import (
     RecipientCaregiversEnvelope,
@@ -28,6 +28,7 @@ from backend.routers.http_errors import status_for_error
 from backend.services.group_member_invites_service import GroupMemberInvitesService
 from pydantic import BaseModel
 from backend.rate_limit import rl_public
+from backend.utils.pagination import clamp_limit_offset
 
 
 recipient_access_router = APIRouter(
@@ -165,12 +166,12 @@ async def send_invitation(
 async def list_sent_invitations(
     caregiverId: str,
     response: Response,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = PaginationConsts.DEFAULT_LIMIT,
+    offset: int = PaginationConsts.DEFAULT_OFFSET,
     db: Session = Depends(get_db),
     invitations_service: InvitationsService = Depends(get_invitations_service),
 ) -> Dict[str, Any]:
-    limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
     try:
         result = invitations_service.list_for_caregiver(db, caregiver_id=caregiverId, limit=limit, offset=offset)
     except ValueError as e:
@@ -207,12 +208,12 @@ async def cancel_invitation(caregiverId: str, invitationId: str, db: Session = D
 async def list_recipient_invitations(
     recipientId: str,
     response: Response,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = PaginationConsts.DEFAULT_LIMIT,
+    offset: int = PaginationConsts.DEFAULT_OFFSET,
     db: Session = Depends(get_db),
     invitations_service: InvitationsService = Depends(get_invitations_service),
 ) -> Dict[str, Any]:
-    limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
     try:
         result = invitations_service.list_for_recipient(db, recipient_id=recipientId, limit=limit, offset=offset)
     except ValueError as e:
@@ -296,12 +297,12 @@ async def caregiver_decline_invitation(
 async def list_recipient_sent_invitations(
     recipientId: str,
     response: Response,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = PaginationConsts.DEFAULT_LIMIT,
+    offset: int = PaginationConsts.DEFAULT_OFFSET,
     db: Session = Depends(get_db),
     invitations_service: InvitationsService = Depends(get_invitations_service),
 ) -> Dict[str, Any]:
-    limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
     try:
         result = invitations_service.list_sent_by_recipient(db, recipient_id=recipientId, limit=limit, offset=offset)
     except ValueError as e:

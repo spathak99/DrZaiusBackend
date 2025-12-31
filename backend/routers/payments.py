@@ -4,7 +4,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Body, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 
-from backend.core.constants import Prefix, Tags, Routes, Summaries, Errors, Keys, Headers
+from backend.core.constants import Prefix, Tags, Routes, Summaries, Errors, Keys, Headers, Pagination as PaginationConsts
 from backend.db.database import get_db
 from backend.routers.deps import get_current_user, get_payment_codes_service
 from backend.db.models import User
@@ -46,13 +46,13 @@ async def create_code(
 async def list_codes(
 	id: str,
 	response: Response,
-	limit: int = 50,
-	offset: int = 0,
+	limit: int = PaginationConsts.DEFAULT_LIMIT,
+	offset: int = PaginationConsts.DEFAULT_OFFSET,
 	current_user: User = Depends(get_current_user),
 	db: Session = Depends(get_db),
 	payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service),
 ) -> Dict[str, Any]:
-	limit, offset = clamp_limit_offset(limit, offset, max_limit=100)
+	limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
 	try:
 		result = payment_codes_service.list_codes(db, group_id=id, actor_id=str(current_user.id), limit=limit, offset=offset)
 	except ValueError as e:

@@ -12,10 +12,8 @@ from backend.core.settings import get_settings
 from backend.rate_limit import limiter
 try:
     from slowapi.errors import RateLimitExceeded
-    from slowapi import _rate_limit_exceeded_handler
 except Exception:
     RateLimitExceeded = None
-    _rate_limit_exceeded_handler = None
 from backend.routers import (
     auth,
     users,
@@ -103,10 +101,22 @@ app.include_router(rag.router)
 app.include_router(payments.router)
 app.include_router(redaction.router)
 
-# Rate limit exception handler (if enabled and slowapi available)
+# Rate limit exception handler (custom JSON) if enabled
 if getattr(_settings, "enable_rate_limiting", False) and RateLimitExceeded is not None:
+    @app.exception_handler(RateLimitExceeded)
+    async def ratelimit_handler(request: Request, exc: Exception):
+        retry_after = getattr(exc, "detail", None)
+        body = {Keys.MESSAGE: "rate_limited", Keys.REQUEST_ID: getattr(request.state, "request_id", None)}
+        if retry_after is not None:
+            body["retryAfter"] = str(retry_after)
+        response = JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content=body)
+        if retry_after is not None:
+            try:
+                response.headers["Retry-After"] = str(retry_after)
+            except Exception:
+                pass
+        return response
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.on_event("startup")

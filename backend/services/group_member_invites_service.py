@@ -34,6 +34,7 @@ class GroupMemberInvitesService:
 		# guard
 		ensure_admin(self.memberships, db, group_id=group_id, actor_id=actor_id)
 		# idempotent: if user exists, caller should add membership directly. Here we still send invite.
+		email = (email or "").strip().lower()
 		row = self.repo.get_pending_by_email(db, group_id=group_id, email=email)
 		if row is None:
 			row = self.repo.create(db, group_id=group_id, invited_email=email, invited_full_name=full_name, invited_by=actor_id)
@@ -77,7 +78,7 @@ class GroupMemberInvitesService:
 			raise ValueError(Errors.INVALID_TOKEN)
 		invite_id = data.get(Keys.INVITATION_ID)
 		group_id = data.get(Keys.GROUP_ID)
-		email = data.get(Fields.EMAIL)
+		email = (data.get(Fields.EMAIL) or "").strip().lower()
 		if not invite_id or not group_id or not email:
 			raise ValueError(Errors.INVALID_PAYLOAD)
 		invite = self.repo.get(db, invite_id=str(invite_id))
