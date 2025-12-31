@@ -167,6 +167,9 @@ class AuthService:
         # normalize username/email for lookup
         username = (username or "").strip().lower()
         user = db.scalar(select(User).where(User.username == username))
+        if user is None:
+            # fallback: allow login via email as well
+            user = db.scalar(select(User).where(User.email == username))
         if user is None or not verify_password(password, user.password_hash):
             raise ValueError(Errors.INVALID_CREDENTIALS)
         token = issue_token(str(user.id))

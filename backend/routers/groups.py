@@ -69,9 +69,10 @@ async def create_group(
 
 
 @router.get(Routes.ROOT, summary=Summaries.GROUPS_LIST, response_model=GroupsListEnvelope)
-async def list_my_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: GroupsService = Depends(get_groups_service)) -> Dict[str, Any]:
+async def list_my_groups(response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: GroupsService = Depends(get_groups_service)) -> Dict[str, Any]:
     rows = svc.list_mine(db, user_id=str(current_user.id))
     items = [GroupListItem(id=r["id"], name=r["name"], description=r.get("description")) for r in rows]
+    response.headers[Headers.TOTAL_COUNT] = str(len(items))
     return {"items": items}
 
 
