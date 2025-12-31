@@ -3,7 +3,7 @@ import sqlalchemy as sa
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, String, Text, func, UniqueConstraint, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from backend.schemas.common import InvitationStatus
@@ -236,6 +236,20 @@ class GroupMemberInvite(Base):
     status: Mapped[str] = mapped_column(String(20), default=InvitationStatus.pending.value)
     invited_by: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.USERS}.{Fields.ID}"))
     expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = ts_created()
+    updated_at: Mapped[datetime] = ts_updated()
+
+
+class Dependent(Base):
+    __tablename__ = Tables.DEPENDENTS
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.GROUPS}.{Fields.ID}", ondelete="CASCADE"))
+    guardian_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.USERS}.{Fields.ID}", ondelete="CASCADE"))
+    full_name: Mapped[Optional[str]] = mapped_column(String(FULL_NAME_MAX_LEN), nullable=True)
+    dob: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(EMAIL_MAX_LEN), nullable=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 

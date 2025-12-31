@@ -420,6 +420,7 @@ class Tables:
     GROUPS: Final[str] = "groups"
     GROUP_MEMBERSHIPS: Final[str] = "group_memberships"
     GROUP_MEMBER_INVITES: Final[str] = "group_member_invites"
+    DEPENDENTS: Final[str] = "dependents"
     RECIPIENT_CAREGIVER_ACCESS: Final[str] = "recipient_caregiver_access"
     CHATS: Final[str] = "chats"
     CHAT_PARTICIPANTS: Final[str] = "chat_participants"
