@@ -6,9 +6,10 @@ from pydantic import BaseModel
 
 from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers, Pagination as PaginationConsts
 from backend.db.database import get_db
-from backend.routers.deps import get_current_user, get_groups_service, get_memberships_service
+from backend.routers.deps import get_current_user, get_groups_service, get_memberships_service, get_group_member_invites_service
 from backend.db.models import User
 from backend.services.groups_service import GroupsService, MembershipsService
+from backend.services.group_member_invites_service import GroupMemberInvitesService
 from backend.utils.pagination import clamp_limit_offset
 from backend.routers.http_errors import status_for_error
 from backend.schemas.groups import (
@@ -21,6 +22,12 @@ from backend.schemas.groups import (
     GroupListItem,
     GroupDetail,
     MembershipItem,
+)
+from backend.schemas.group_invites import (
+    GroupMemberInviteCreate,
+    GroupMemberInviteItem,
+    GroupMemberInvitesEnvelope,
+    GroupMemberInviteCreatedEnvelope,
 )
 
 router = APIRouter(prefix=Prefix.GROUPS, tags=[Tags.GROUPS], dependencies=[Depends(get_current_user)])
@@ -124,7 +131,22 @@ async def list_members(
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    items = [MembershipItem(id=r["id"], userId=r["user_id"] if "user_id" in r else r.get("userId") or r[Keys.USER_ID], role=r["role"]) for r in result[Keys.ITEMS]]  # tolerate key naming
+    # Enrich with user details (name/email/age)
+    raw_items = result[Keys.ITEMS]
+    user_ids = [r.get("user_id") or r.get("userId") or r[Keys.USER_ID] for r in raw_items]
+    users_map = {str(u.id): u for u in db.scalars(select(User).where(User.id.in_(user_ids))).all()}
+    items = []
+    for r in raw_items:
+        uid = r.get("user_id") if "user_id" in r else (r.get("userId") or r[Keys.USER_ID])
+        u = users_map.get(str(uid))
+        items.append(MembershipItem(
+            id=r["id"],
+            userId=str(uid),
+            role=r["role"],
+            full_name=(u.full_name if u else None),
+            email=(u.email if u else None),
+            age=(u.age if u else None),
+        ))
     response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
     return {Keys.ITEMS: items}
 
@@ -174,6 +196,51 @@ async def remove_member(id: str, userId: str, current_user: User = Depends(get_c
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return
+
+
+# Group member invites (account members)
+@router.post(Routes.ID + Routes.ACCESS + "/invitations", summary="Send group member invite", response_model=GroupMemberInviteCreatedEnvelope)
+async def send_group_member_invite(
+    id: str,
+    payload: GroupMemberInviteCreate = Body(default=None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    svc: GroupMemberInvitesService = Depends(get_group_member_invites_service),
+) -> Dict[str, Any]:
+    try:
+        data = svc.send(db, group_id=id, actor_id=str(current_user.id), email=str(payload.email), full_name=payload.full_name)
+    except ValueError as e:
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
+    return {"message": Messages.INVITATION_SENT, "data": GroupMemberInviteItem(**{
+        "id": data.get(Fields.ID),
+        "invited_email": data.get(Keys.INVITED_EMAIL),
+        "invited_full_name": data.get(Keys.INVITED_FULL_NAME),
+        "status": data.get(Keys.STATUS),
+        "acceptUrl": data.get(Keys.ACCEPT_URL),
+    })}
+
+
+@router.get(Routes.ID + Routes.ACCESS + "/invitations", summary="List pending group member invites", response_model=GroupMemberInvitesEnvelope)
+async def list_group_member_invites(
+    id: str,
+    response: Response,
+    limit: int = PaginationConsts.DEFAULT_LIMIT,
+    offset: int = PaginationConsts.DEFAULT_OFFSET,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    svc: GroupMemberInvitesService = Depends(get_group_member_invites_service),
+) -> Dict[str, Any]:
+    # Any admin can list
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
+    try:
+        result = svc.list_pending(db, group_id=id, limit=limit, offset=offset)
+    except ValueError as e:
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
+    items = [GroupMemberInviteItem(**it) for it in result.get("items", [])]
+    response.headers[Headers.TOTAL_COUNT] = str(result.get("total", len(items)))
+    return {"items": items}
 
 
 @router.post(Routes.ID + Routes.ACCESS + Routes.SELF, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_LEAVE)

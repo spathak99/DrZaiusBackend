@@ -233,7 +233,7 @@ class GroupMemberInvite(Base):
     group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.GROUPS}.{Fields.ID}", ondelete="CASCADE"))
     invited_email: Mapped[str] = mapped_column(String(EMAIL_MAX_LEN), index=True)
     invited_full_name: Mapped[Optional[str]] = mapped_column(String(FULL_NAME_MAX_LEN), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default="pending")
+    status: Mapped[str] = mapped_column(String(20), default=InvitationStatus.pending.value)
     invited_by: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.USERS}.{Fields.ID}"))
     expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = ts_created()

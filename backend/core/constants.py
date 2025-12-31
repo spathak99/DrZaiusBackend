@@ -330,6 +330,7 @@ class Keys:
     DB: Final[str] = "db"
     ENABLE_PIPELINE: Final[str] = "enablePipeline"
     ENABLE_DLP: Final[str] = "enableDlp"
+    TYPE: Final[str] = "type"
     # Entity Id keys
     CHAT_ID: Final[str] = "chatId"
     FILE_ID: Final[str] = "fileId"
@@ -346,6 +347,8 @@ class Keys:
     CODE: Final[str] = "code"
     EXPIRES_AT: Final[str] = "expires_at"
     REDEEMED_BY: Final[str] = "redeemed_by"
+    INVITED_EMAIL: Final[str] = "invited_email"
+    INVITED_FULL_NAME: Final[str] = "invited_full_name"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"
@@ -458,6 +461,9 @@ class LogEvents:
     FILE_UPLOADED: Final[str] = "file_uploaded"
     FILE_REDACT_QUEUED: Final[str] = "file_redact_queued"
     FILE_REDACT_UPLOADED: Final[str] = "file_redact_uploaded"
+
+class TokenTypes:
+    GROUP_MEMBER: Final[str] = "group_member"
 
 
 class DeepLink:

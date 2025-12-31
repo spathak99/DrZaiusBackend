@@ -18,13 +18,14 @@ from backend.schemas.invitation import (
     CaregiverInvitationActionEnvelope,
     PublicInvitationActionEnvelope,
 )
-from backend.routers.deps import get_current_user, get_invitations_service, get_access_service
+from backend.routers.deps import get_current_user, get_invitations_service, get_access_service, get_group_member_invites_service
 from backend.db.database import get_db
 from backend.db.models import Invitation, User, RecipientCaregiverAccess
 from backend.core.constants import Roles
 from backend.services import InvitationsService, AccessService
 import uuid
 from backend.routers.http_errors import status_for_error
+from backend.services.group_member_invites_service import GroupMemberInvitesService
 
 
 recipient_access_router = APIRouter(
@@ -317,6 +318,20 @@ async def accept_by_token(
     token = (payload or {}).get(Keys.TOKEN)
     try:
         return invitations_service.accept_by_token(db, token=token)
+    except ValueError as e:
+        detail = _err(str(e))
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
+
+# Group member invite accept-by-token (public)
+@public_invites_router.post("/group-member/accept-by-token", summary=Summaries.INVITATION_ACCEPT)
+async def accept_group_member_by_token(
+    payload: Dict[str, Any] = Body(default=None),
+    db: Session = Depends(get_db),
+    svc: GroupMemberInvitesService = Depends(get_group_member_invites_service),
+) -> Dict[str, Any]:
+    token = (payload or {}).get(Keys.TOKEN)
+    try:
+        return svc.accept_by_token(db, token=token)
     except ValueError as e:
         detail = _err(str(e))
         raise HTTPException(status_code=status_for_error(detail), detail=detail)

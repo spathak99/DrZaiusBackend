@@ -33,6 +33,9 @@ class MembershipItem(BaseModel):
 	id: str
 	userId: str
 	role: str
+	full_name: Optional[str] = None
+	email: Optional[str] = None
+	age: Optional[int] = None
 
 
 class GroupsListEnvelope(BaseModel):

@@ -11,8 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.core.settings import get_settings
-from backend.db.models import User
-from backend.core.constants import Auth as AuthConst, Errors
+from backend.db.models import User, Group, GroupMembership
+from backend.core.constants import Auth as AuthConst, Errors, GroupRoles, Fields
 
 
 def _b64url(data: bytes) -> str:
@@ -143,6 +143,20 @@ class AuthService:
         db.add(user)
         db.commit()
         db.refresh(user)
+        # If group plan, create a group and add creator as admin
+        if (account_type or "").lower() == "group":
+            group = Group(name=f"{full_name or username}'s Group", description=None, created_by=user.id)
+            db.add(group)
+            db.commit()
+            db.refresh(group)
+            # optional convenience pointer
+            user.group_id = group.id
+            db.add(user)
+            db.commit()
+            # membership as admin (idempotent insert)
+            gm = GroupMembership(group_id=group.id, user_id=user.id, role=GroupRoles.ADMIN)
+            db.add(gm)
+            db.commit()
         token = issue_token(str(user.id))
         return user, token
 

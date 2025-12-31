@@ -20,6 +20,8 @@ from backend.repositories.group_memberships_repo import GroupMembershipsReposito
 from backend.repositories.payment_codes_repo import PaymentCodesRepository
 from backend.repositories.invitations_repo import InvitationsRepository
 from backend.repositories.access_repo import AccessRepository
+from backend.repositories.group_member_invites_repo import GroupMemberInvitesRepository
+from backend.services.group_member_invites_service import GroupMemberInvitesService
 
 
 auth_service = AuthService()
@@ -86,4 +88,8 @@ def get_ingestion_service() -> IngestionService:
 
 def get_dlp_service() -> DlpService:
 	return DlpService()
+
+
+def get_group_member_invites_service() -> GroupMemberInvitesService:
+	return GroupMemberInvitesService(repo=GroupMemberInvitesRepository(), memberships=GroupMembershipsRepository())
 
