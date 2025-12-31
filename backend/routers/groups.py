@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -34,7 +34,10 @@ from backend.schemas.dependents import (
     DependentCreate,
     DependentItem,
     DependentsEnvelope,
+    DependentConvertRequest,
+    DependentConvertResponse,
 )
+from backend.rate_limit import rl_mutation
 
 router = APIRouter(prefix=Prefix.GROUPS, tags=[Tags.GROUPS], dependencies=[Depends(get_current_user)])
 
@@ -74,8 +77,10 @@ async def list_my_groups(current_user: User = Depends(get_current_user), db: Ses
 
 # Dependents CRUD
 @router.post(Routes.ID + "/dependents", summary="Create dependent", response_model=DependentItem)
+@rl_mutation()
 async def create_dependent(
     id: str,
+    request: Request,
     payload: DependentCreate = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -117,9 +122,11 @@ async def list_dependents(
 
 
 @router.delete(Routes.ID + "/dependents" + Routes.USER_ID, status_code=status.HTTP_204_NO_CONTENT, summary="Delete dependent")
+@rl_mutation()
 async def delete_dependent(
     id: str,
     userId: str,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     svc: DependentsService = Depends(get_dependents_service),
@@ -130,6 +137,25 @@ async def delete_dependent(
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
     return
+
+
+@router.post(Routes.ID + "/dependents" + Routes.USER_ID + "/convert", summary="Convert dependent to account", response_model=DependentConvertResponse)
+@rl_mutation()
+async def convert_dependent(
+    id: str,
+    userId: str,
+    request: Request,
+    payload: DependentConvertRequest = Body(default=None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    svc: DependentsService = Depends(get_dependents_service),
+) -> Dict[str, Any]:
+    try:
+        data = svc.convert_to_account(db, group_id=id, actor_id=str(current_user.id), dependent_id=userId, email=(str(payload.email) if payload and payload.email else None))
+    except ValueError as e:
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
+    return DependentConvertResponse(message=data.get(Keys.MESSAGE, Messages.GROUP_MEMBER_ADDED), userId=data.get(Keys.USER_ID))
 
 
 @router.get(Routes.ID, summary=Summaries.GROUP_GET, response_model=GroupDetailEnvelope)
@@ -218,8 +244,10 @@ async def list_members(
 
 
 @router.post(Routes.ID + Routes.ACCESS, summary=Summaries.GROUP_MEMBER_ADD, response_model=ActionEnvelope)
+@rl_mutation()
 async def add_member(
     id: str,
+    request: Request,
     payload: MemberAdd = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -238,9 +266,11 @@ async def add_member(
 
 
 @router.put(Routes.ID + Routes.ACCESS + Routes.USER_ID + Routes.ROLE, summary=Summaries.GROUP_MEMBER_UPDATE, response_model=ActionEnvelope)
+@rl_mutation()
 async def change_role(
     id: str,
     userId: str,
+    request: Request,
     payload: MemberRoleUpdate = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -255,7 +285,8 @@ async def change_role(
 
 
 @router.delete(Routes.ID + Routes.ACCESS + Routes.USER_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_MEMBER_REMOVE)
-async def remove_member(id: str, userId: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: MembershipsService = Depends(get_memberships_service)) -> None:
+@rl_mutation()
+async def remove_member(id: str, userId: str, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), svc: MembershipsService = Depends(get_memberships_service)) -> None:
     try:
         svc.remove(db, group_id=id, actor_id=str(current_user.id), user_id=userId)
     except ValueError as e:
@@ -266,8 +297,10 @@ async def remove_member(id: str, userId: str, current_user: User = Depends(get_c
 
 # Group member invites (account members)
 @router.post(Routes.ID + Routes.ACCESS + "/invitations", summary="Send group member invite", response_model=GroupMemberInviteCreatedEnvelope)
+@rl_mutation()
 async def send_group_member_invite(
     id: str,
+    request: Request,
     payload: GroupMemberInviteCreate = Body(default=None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

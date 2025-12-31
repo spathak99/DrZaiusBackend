@@ -1,7 +1,8 @@
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException, Header, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Header, status, Request
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Errors, Routes, Fields
+from backend.rate_limit import rl_public
 from backend.db.database import get_db
 from backend.schemas import SignupRequest, LoginRequest, ChangePasswordRequest, TokenResponse, UserResponse
 from backend.services.auth_service import AuthService
@@ -16,7 +17,8 @@ service = AuthService()
 
 
 @router.post(Routes.AUTH_SIGNUP, status_code=status.HTTP_201_CREATED, summary=Summaries.SIGNUP, response_model=TokenResponse)
-async def signup(payload: SignupRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
+@rl_public()
+async def signup(request: Request, payload: SignupRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         _, token = service.signup(
             db,
@@ -45,7 +47,8 @@ async def signup(payload: SignupRequest = Body(default=None), db: Session = Depe
 
 
 @router.post(Routes.AUTH_LOGIN, summary=Summaries.LOGIN, response_model=TokenResponse)
-async def login(payload: LoginRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
+@rl_public()
+async def login(request: Request, payload: LoginRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         _, token = service.login(db, username=payload.username, password=payload.password)
         return {"access_token": token, "token_type": Messages.TOKEN_TYPE_BEARER}

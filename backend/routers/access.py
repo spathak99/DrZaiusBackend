@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from fastapi import APIRouter, Body, status, Depends, HTTPException, Response
+from fastapi import APIRouter, Body, status, Depends, HTTPException, Response, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, InvitationStatus, AccessLevel, Routes, Errors, Fields, Keys, Headers
@@ -27,6 +27,7 @@ import uuid
 from backend.routers.http_errors import status_for_error
 from backend.services.group_member_invites_service import GroupMemberInvitesService
 from pydantic import BaseModel
+from backend.rate_limit import rl_public
 
 
 recipient_access_router = APIRouter(
@@ -311,8 +312,10 @@ async def list_recipient_sent_invitations(
 
 # Accept by signed token (no auth required)
 @public_invites_router.post(Routes.ACCEPT_BY_TOKEN, summary=Summaries.INVITATION_ACCEPT, response_model=PublicInvitationActionEnvelope)
+@rl_public()
 async def accept_by_token(
     payload: Dict[str, Any] = Body(default=None),
+    request: Request = None,
     db: Session = Depends(get_db),
     invitations_service: InvitationsService = Depends(get_invitations_service),
 ) -> Dict[str, Any]:
@@ -330,8 +333,10 @@ class GroupMemberAcceptResponse(BaseModel):
     username: str
 
 @public_invites_router.post(Routes.GROUP_MEMBER + Routes.ACCEPT_BY_TOKEN, summary=Summaries.INVITATION_ACCEPT, response_model=GroupMemberAcceptResponse)
+@rl_public()
 async def accept_group_member_by_token(
     payload: Dict[str, Any] = Body(default=None),
+    request: Request = None,
     db: Session = Depends(get_db),
     svc: GroupMemberInvitesService = Depends(get_group_member_invites_service),
 ) -> Dict[str, Any]:

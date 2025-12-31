@@ -77,6 +77,8 @@ class Routes:
     # Common suffixes
     EMBEDDINGS: Final[str] = "/embeddings"
     DOWNLOAD: Final[str] = "/download"
+    # Group member invite public path helper
+    GROUP_MEMBER: Final[str] = "/group-member"
     ACCESS: Final[str] = "/access"
     ROLE: Final[str] = "/role"
     CODE: Final[str] = "/{code}"
@@ -466,6 +468,7 @@ class LogEvents:
     FILE_REDACT_UPLOADED: Final[str] = "file_redact_uploaded"
     DEPENDENT_CREATED: Final[str] = "dependent_created"
     DEPENDENT_DELETED: Final[str] = "dependent_deleted"
+    DEPENDENT_CONVERTED: Final[str] = "dependent_converted"
 
 class TokenTypes:
     GROUP_MEMBER: Final[str] = "group_member"
@@ -475,9 +478,7 @@ class DeepLink:
     SCHEME: Final[str] = "drzaius"
     INVITE_ACCEPT_PATH: Final[str] = "invite/accept"
 
-class Routes:
-    # existing constants imported elsewhere; extend for group-member accept
-    GROUP_MEMBER: Final[str] = "/group-member"
+ 
 
 class Email:
     SUBJECT_INVITE: Final[str] = "You have a caregiver invitation"

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict
-from fastapi import APIRouter, Body, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 
 from backend.core.constants import Prefix, Tags, Routes, Summaries, Errors, Keys, Headers
@@ -19,13 +19,16 @@ from backend.schemas.payments import (
 )
 from backend.routers.http_errors import status_for_error
 from backend.utils.pagination import clamp_limit_offset
+from backend.rate_limit import rl_mutation
 
 router = APIRouter(tags=[Tags.GROUPS])
 
 
 @router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES, response_model=CodeCreateResponse, summary=Summaries.PAYMENT_CODE_CREATE)
+@rl_mutation()
 async def create_code(
 	id: str,
+	request: Request,
 	payload: CodeCreateRequest = Body(default=None),
 	current_user: User = Depends(get_current_user),
 	db: Session = Depends(get_db),
@@ -61,8 +64,9 @@ async def list_codes(
 
 
 @router.post(Prefix.GROUPS + Routes.ID + Routes.PAYMENTS + Routes.CODES + Routes.CODE + Routes.VOID, summary=Summaries.PAYMENT_CODE_VOID, status_code=status.HTTP_204_NO_CONTENT)
+@rl_mutation()
 async def void_code(
-	id: str, code: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service)
+	id: str, code: str, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), payment_codes_service: PaymentCodesService = Depends(get_payment_codes_service)
 ) -> None:
 	try:
 		payment_codes_service.void_code(db, group_id=id, actor_id=str(current_user.id), code=code)

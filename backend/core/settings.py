@@ -99,6 +99,10 @@ class Settings(BaseSettings):
         default="",
         description="KMS key resource name (projects/.../locations/.../keyRings/.../cryptoKeys/...) when provider=kms",
     )
+    # Rate limiting
+    enable_rate_limiting: bool = Field(default=False, description="Enable API rate limiting (SlowAPI)")
+    rate_limit_public: str = Field(default="10/minute", description="Limit for public endpoints (e.g., signup/login/token accept)")
+    rate_limit_mutation: str = Field(default="30/minute", description="Limit for authenticated mutating endpoints")
 
     class Config:
         env_file = ".env"

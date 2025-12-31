@@ -6,12 +6,13 @@ import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from backend.core.constants import Errors, Keys, Fields, GroupRoles, LogEvents
+from backend.core.constants import Errors, Keys, Fields, GroupRoles, LogEvents, Roles
 from backend.db.models import User, Group, Dependent
 from backend.repositories.dependents_repo import DependentsRepository
 from backend.repositories.group_memberships_repo import GroupMembershipsRepository
 from backend.repositories.interfaces import DependentsRepo
 from backend.services.utils import ensure_member, ensure_admin_or_guardian
+from backend.services.auth_service import hash_password
 
 
 class DependentsService:
@@ -65,5 +66,36 @@ class DependentsService:
 		self.repo.soft_delete(db, dependent=row)
 		self.logger.info(LogEvents.DEPENDENT_DELETED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id)})
 		return
+
+	def convert_to_account(self, db: Session, *, group_id: str, actor_id: str, dependent_id: str, email: Optional[str]) -> Dict[str, Any]:
+		row = self.repo.get(db, dependent_id=dependent_id)
+		if row is None or str(row.group_id) != str(group_id):
+			raise ValueError(Errors.USER_NOT_FOUND)
+		# Admin or guardian can convert
+		ensure_admin_or_guardian(self.memberships, db, group_id=group_id, actor_id=actor_id, guardian_user_id=str(row.guardian_user_id))
+		target_email = (row.email or email or "").strip()
+		if not target_email:
+			raise ValueError(Errors.INVALID_PAYLOAD)
+		# Create or get user
+		user = db.scalar(select(User).where(User.email == target_email))
+		if user is None:
+			user = User(
+				username=target_email,
+				email=target_email,
+				password_hash=hash_password("TempPassw0rd!"),
+				role=Roles.CAREGIVER,
+				full_name=row.full_name,
+				corpus_uri=f"user://{target_email}/corpus",
+				chat_history_uri=None,
+			)
+			db.add(user)
+			db.commit()
+			db.refresh(user)
+		# Add membership as member
+		self.memberships.add(db, group_id=str(group_id), user_id=str(user.id), role=GroupRoles.MEMBER)
+		# Soft-delete dependent record after conversion
+		self.repo.soft_delete(db, dependent=row)
+		self.logger.info(LogEvents.DEPENDENT_CONVERTED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id), "userId": str(user.id)})
+		return {Keys.MESSAGE: Messages.GROUP_MEMBER_ADDED, Keys.USER_ID: str(user.id)}
 
 

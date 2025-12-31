@@ -22,3 +22,12 @@ class DependentsEnvelope(BaseModel):
 	items: List[DependentItem]
 
 
+class DependentConvertRequest(BaseModel):
+	email: Optional[EmailStr] = None
+
+
+class DependentConvertResponse(BaseModel):
+	message: str
+	userId: str
+
+
