@@ -225,3 +225,17 @@ class GroupPaymentCode(Base):
     created_at: Mapped[datetime] = ts_created()
     updated_at: Mapped[datetime] = ts_updated()
 
+
+class GroupMemberInvite(Base):
+    __tablename__ = Tables.GROUP_MEMBER_INVITES
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.GROUPS}.{Fields.ID}", ondelete="CASCADE"))
+    invited_email: Mapped[str] = mapped_column(String(EMAIL_MAX_LEN), index=True)
+    invited_full_name: Mapped[Optional[str]] = mapped_column(String(FULL_NAME_MAX_LEN), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    invited_by: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{Tables.USERS}.{Fields.ID}"))
+    expires_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = ts_created()
+    updated_at: Mapped[datetime] = ts_updated()
+

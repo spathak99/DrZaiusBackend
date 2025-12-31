@@ -416,6 +416,7 @@ class Tables:
     USERS: Final[str] = "users"
     GROUPS: Final[str] = "groups"
     GROUP_MEMBERSHIPS: Final[str] = "group_memberships"
+    GROUP_MEMBER_INVITES: Final[str] = "group_member_invites"
     RECIPIENT_CAREGIVER_ACCESS: Final[str] = "recipient_caregiver_access"
     CHATS: Final[str] = "chats"
     CHAT_PARTICIPANTS: Final[str] = "chat_participants"
