@@ -26,6 +26,7 @@ from backend.services import InvitationsService, AccessService
 import uuid
 from backend.routers.http_errors import status_for_error
 from backend.services.group_member_invites_service import GroupMemberInvitesService
+from pydantic import BaseModel
 
 
 recipient_access_router = APIRouter(
@@ -323,7 +324,12 @@ async def accept_by_token(
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
 
 # Group member invite accept-by-token (public)
-@public_invites_router.post("/group-member/accept-by-token", summary=Summaries.INVITATION_ACCEPT)
+class GroupMemberAcceptResponse(BaseModel):
+    message: str
+    groupId: str
+    username: str
+
+@public_invites_router.post(Routes.GROUP_MEMBER + Routes.ACCEPT_BY_TOKEN, summary=Summaries.INVITATION_ACCEPT, response_model=GroupMemberAcceptResponse)
 async def accept_group_member_by_token(
     payload: Dict[str, Any] = Body(default=None),
     db: Session = Depends(get_db),

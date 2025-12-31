@@ -16,6 +16,7 @@ from backend.core.settings import get_settings
 from backend.services.auth_service import hash_password
 from backend.schemas.common import InvitationStatus
 from backend.repositories.interfaces import GroupMemberInvitesRepo
+from backend.services.utils import ensure_admin
 
 
 class GroupMemberInvitesService:
@@ -31,7 +32,7 @@ class GroupMemberInvitesService:
 
 	def send(self, db: Session, *, group_id: str, actor_id: str, email: str, full_name: Optional[str]) -> Dict[str, Any]:
 		# guard
-		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
+		ensure_admin(self.memberships, db, group_id=group_id, actor_id=actor_id)
 		# idempotent: if user exists, caller should add membership directly. Here we still send invite.
 		row = self.repo.get_pending_by_email(db, group_id=group_id, email=email)
 		if row is None:

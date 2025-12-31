@@ -331,6 +331,8 @@ class Keys:
     ENABLE_PIPELINE: Final[str] = "enablePipeline"
     ENABLE_DLP: Final[str] = "enableDlp"
     TYPE: Final[str] = "type"
+    DOB: Final[str] = "dob"
+    GUARDIAN_USER_ID: Final[str] = "guardian_user_id"
     # Entity Id keys
     CHAT_ID: Final[str] = "chatId"
     FILE_ID: Final[str] = "fileId"
@@ -473,6 +475,9 @@ class DeepLink:
     SCHEME: Final[str] = "drzaius"
     INVITE_ACCEPT_PATH: Final[str] = "invite/accept"
 
+class Routes:
+    # existing constants imported elsewhere; extend for group-member accept
+    GROUP_MEMBER: Final[str] = "/group-member"
 
 class Email:
     SUBJECT_INVITE: Final[str] = "You have a caregiver invitation"

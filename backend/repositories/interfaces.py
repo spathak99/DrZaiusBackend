@@ -84,4 +84,8 @@ class DependentsRepo(Protocol):
 	def soft_delete(self, db: Session, *, dependent: Dependent) -> None:
 		...
 
+class MembershipsRepo(Protocol):
+	def get(self, db: Session, *, group_id: str, user_id: str):
+		...
+
 

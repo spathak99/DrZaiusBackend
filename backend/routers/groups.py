@@ -89,9 +89,9 @@ async def create_dependent(
     return DependentItem(**{
         "id": data.get(Fields.ID),
         "full_name": data.get(Fields.FULL_NAME),
-        "dob": data.get("dob"),
+        "dob": data.get(Keys.DOB),
         "email": data.get(Fields.EMAIL),
-        "guardian_user_id": data.get("guardian_user_id"),
+        "guardian_user_id": data.get(Keys.GUARDIAN_USER_ID),
     })
 
 
