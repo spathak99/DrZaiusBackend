@@ -1,18 +1,22 @@
 from typing import Any, Dict, List, Optional
+import logging
+from datetime import date
 from fastapi import APIRouter, Body, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from pydantic import BaseModel
 
-from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers, Pagination as PaginationConsts
+from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers, Roles, Pagination as PaginationConsts
 from backend.db.database import get_db
 from backend.routers.deps import get_current_user, get_groups_service, get_memberships_service, get_group_member_invites_service, get_dependents_service
 from backend.db.models import User
+import secrets
 from backend.services.groups_service import GroupsService, MembershipsService
 from backend.services.group_member_invites_service import GroupMemberInvitesService
 from backend.services.dependents_service import DependentsService
 from backend.utils.pagination import clamp_limit_offset
 from backend.routers.http_errors import status_for_error
+from backend.services.auth_service import hash_password
 from backend.schemas.groups import (
     GroupCreate,
     GroupUpdate,
@@ -45,6 +49,10 @@ router = APIRouter(prefix=Prefix.GROUPS, tags=[Tags.GROUPS], dependencies=[Depen
 class MemberAdd(BaseModel):
     email: str
     role: Optional[str] = None
+    dob: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    age: Optional[int] = None
 
 
 class MemberRoleUpdate(BaseModel):
@@ -58,6 +66,9 @@ async def create_group(
     db: Session = Depends(get_db),
     svc: GroupsService = Depends(get_groups_service),
 ) -> Dict[str, Any]:
+    # Only group-plan accounts can create/manage groups
+    if (getattr(current_user, "account_type", None) or "").lower() != "group":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
     data = svc.create(db, name=payload.name, description=payload.description, created_by=str(current_user.id))
     return {"data": GroupDetail(**{
         "id": data.get("id"),
@@ -255,11 +266,42 @@ async def add_member(
     svc: MembershipsService = Depends(get_memberships_service),
 ) -> Dict[str, Any]:
     try:
-        # Resolve by email for consistency with invitations model
-        target = db.scalar(select(User).where(User.email == (payload.email or "").strip().lower()))
+        # Resolve by email for consistency with invitations model; auto-create if missing (scrappy MVP)
+        normalized = (payload.email or "").strip().lower()
+        temp_password: Optional[str] = None
+        target = db.scalar(select(User).where(User.email == normalized))
         if target is None:
-            raise ValueError(Errors.USER_NOT_FOUND)
+            # compute age if dob provided
+            age_val: Optional[int] = None
+            if payload.dob:
+                try:
+                    dob_dt = date.fromisoformat(payload.dob)
+                    today = date.today()
+                    age_val = today.year - dob_dt.year - ((today.month, today.day) < (dob_dt.month, dob_dt.day))
+                except Exception:
+                    pass
+            if payload.age is not None and isinstance(payload.age, int):
+                age_val = payload.age
+            full_name: Optional[str] = None
+            if payload.first_name or payload.last_name:
+                full_name = f"{(payload.first_name or '').strip()} {(payload.last_name or '').strip()}".strip() or None
+            temp_password = secrets.token_urlsafe(12)
+            target = User(
+                username=normalized,
+                email=normalized,
+                password_hash=hash_password(temp_password),
+                role=Roles.CAREGIVER,
+                full_name=full_name,
+                age=age_val,
+                corpus_uri=f"user://{normalized}/corpus",
+                chat_history_uri=None,
+            )
+            db.add(target)
+            db.commit()
+            db.refresh(target)
         svc.add(db, group_id=id, actor_id=str(current_user.id), user_id=str(target.id), role=payload.role or GroupRoles.MEMBER)
+        if temp_password:
+            logging.getLogger(__name__).info("auto_user_created", extra={"email": normalized, "tempPassword": temp_password, "groupId": id})
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
