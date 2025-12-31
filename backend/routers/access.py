@@ -27,7 +27,7 @@ import uuid
 from backend.routers.http_errors import status_for_error
 from backend.services.group_member_invites_service import GroupMemberInvitesService
 from pydantic import BaseModel
-from backend.rate_limit import rl_public
+from backend.rate_limit import rl_public, rl_mutation
 from backend.utils.pagination import clamp_limit_offset
 
 
@@ -75,8 +75,10 @@ async def list_recipient_caregivers(
 
 
 @recipient_access_router.post(Routes.ROOT, summary=Summaries.RECIPIENT_CAREGIVER_ASSIGN, response_model=AccessMutateEnvelope)
+@rl_mutation()
 async def assign_caregiver(
     recipientId: str,
+    request: Request,
     payload: Dict[str, Any] = Body(default=None),
     db: Session = Depends(get_db),
     access_service: AccessService = Depends(get_access_service),
@@ -93,9 +95,11 @@ async def assign_caregiver(
 
 
 @recipient_access_router.delete(Routes.CAREGIVER_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.RECIPIENT_CAREGIVER_REVOKE)
+@rl_mutation()
 async def revoke_caregiver_access(
     recipientId: str,
     caregiverId: str,
+    request: Request,
     db: Session = Depends(get_db),
     access_service: AccessService = Depends(get_access_service),
 ) -> None:
@@ -104,9 +108,11 @@ async def revoke_caregiver_access(
 
 
 @recipient_access_router.put(Routes.CAREGIVER_ID, summary=Summaries.RECIPIENT_CAREGIVER_UPDATE, response_model=AccessMutateEnvelope)
+@rl_mutation()
 async def update_caregiver_access(
     recipientId: str,
     caregiverId: str,
+    request: Request,
     payload: CaregiverAccessUpdate = Body(default=None),
     db: Session = Depends(get_db),
     access_service: AccessService = Depends(get_access_service),
@@ -146,8 +152,10 @@ async def get_caregiver_recipient(
     summary=Summaries.INVITATION_SEND,
     response_model=InvitationCreatedEnvelope,
 )
+@rl_mutation()
 async def send_invitation(
     caregiverId: str,
+    request: Request,
     payload: RecipientInvitationCreate = Body(default=None),
     db: Session = Depends(get_db),
     invitations_service: InvitationsService = Depends(get_invitations_service),
@@ -182,7 +190,8 @@ async def list_sent_invitations(
 
 
 @caregiver_invitations_router.delete(Routes.INVITATION_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.INVITATION_CANCEL)
-async def cancel_invitation(caregiverId: str, invitationId: str, db: Session = Depends(get_db)) -> None:
+@rl_mutation()
+async def cancel_invitation(caregiverId: str, invitationId: str, request: Request, db: Session = Depends(get_db)) -> None:
     try:
         inv_uuid = uuid.UUID(invitationId)
     except Exception:
@@ -224,8 +233,9 @@ async def list_recipient_invitations(
 
 
 @recipient_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT, response_model=RecipientInvitationActionEnvelope)
+@rl_mutation()
 async def accept_invitation(
-    recipientId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+    recipientId: str, invitationId: str, request: Request, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
     try:
         return invitations_service.recipient_accept(db, recipient_id=recipientId, invitation_id=invitationId)
@@ -235,8 +245,9 @@ async def accept_invitation(
 
 
 @recipient_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE, response_model=RecipientInvitationActionEnvelope)
+@rl_mutation()
 async def decline_invitation(
-    recipientId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+    recipientId: str, invitationId: str, request: Request, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
     try:
         return invitations_service.recipient_decline(db, recipient_id=recipientId, invitation_id=invitationId)
@@ -256,8 +267,10 @@ async def get_recipient_invitation(recipientId: str, invitationId: str) -> Dict[
     summary=Summaries.INVITATION_SEND,
     response_model=InvitationCreatedEnvelope,
 )
+@rl_mutation()
 async def create_recipient_invitation(
     recipientId: str,
+    request: Request,
     payload: RecipientInvitationCreate = Body(default=None),
     db: Session = Depends(get_db),
     invitations_service: InvitationsService = Depends(get_invitations_service),
@@ -271,8 +284,9 @@ async def create_recipient_invitation(
 
 # Caregiver accepts or declines an invitation they received
 @caregiver_invitations_router.post(Routes.INVITATION_ACCEPT, summary=Summaries.INVITATION_ACCEPT, response_model=CaregiverInvitationActionEnvelope)
+@rl_mutation()
 async def caregiver_accept_invitation(
-    caregiverId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+    caregiverId: str, invitationId: str, request: Request, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
     try:
         return invitations_service.caregiver_accept(db, caregiver_id=caregiverId, invitation_id=invitationId)
@@ -282,8 +296,9 @@ async def caregiver_accept_invitation(
 
 
 @caregiver_invitations_router.post(Routes.INVITATION_DECLINE, summary=Summaries.INVITATION_DECLINE, response_model=CaregiverInvitationActionEnvelope)
+@rl_mutation()
 async def caregiver_decline_invitation(
-    caregiverId: str, invitationId: str, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
+    caregiverId: str, invitationId: str, request: Request, db: Session = Depends(get_db), invitations_service: InvitationsService = Depends(get_invitations_service)
 ) -> Dict[str, Any]:
     try:
         return invitations_service.caregiver_decline(db, caregiver_id=caregiverId, invitation_id=invitationId)
