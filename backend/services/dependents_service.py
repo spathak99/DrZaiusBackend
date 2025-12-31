@@ -6,15 +6,16 @@ import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from backend.core.constants import Errors, Keys, Fields, GroupRoles
+from backend.core.constants import Errors, Keys, Fields, GroupRoles, LogEvents
 from backend.db.models import User, Group, Dependent
 from backend.repositories.dependents_repo import DependentsRepository
 from backend.repositories.group_memberships_repo import GroupMembershipsRepository
+from backend.repositories.interfaces import DependentsRepo
 
 
 class DependentsService:
-	def __init__(self, *, repo: DependentsRepository | None = None, memberships: GroupMembershipsRepository | None = None) -> None:
-		self.repo = repo or DependentsRepository()
+	def __init__(self, *, repo: DependentsRepo | None = None, memberships: GroupMembershipsRepository | None = None) -> None:
+		self.repo: DependentsRepo = repo or DependentsRepository()
 		self.memberships = memberships or GroupMembershipsRepository()
 		self.logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ class DependentsService:
 			except Exception:
 				raise ValueError(Errors.INVALID_PAYLOAD)
 		row = self.repo.create(db, group_id=group_id, guardian_user_id=actor_id, full_name=full_name, dob=parsed_dob, email=email)
+		self.logger.info(LogEvents.DEPENDENT_CREATED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id)})
 		return {
 			Fields.ID: str(row.id),
 			Fields.FULL_NAME: row.full_name,
@@ -73,6 +75,7 @@ class DependentsService:
 		# Admin or guardian can delete
 		self._ensure_admin_or_guardian(db, group_id=group_id, actor_id=actor_id, guardian_user_id=str(row.guardian_user_id))
 		self.repo.soft_delete(db, dependent=row)
+		self.logger.info(LogEvents.DEPENDENT_DELETED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id)})
 		return
 
 

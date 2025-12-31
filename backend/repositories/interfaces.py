@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, List, Protocol
 from sqlalchemy.orm import Session
 
-from backend.db.models import Invitation, RecipientCaregiverAccess
+from backend.db.models import Invitation, RecipientCaregiverAccess, GroupMemberInvite, Dependent
 
 
 class InvitationsRepo(Protocol):
@@ -45,6 +45,43 @@ class AccessRepo(Protocol):
 		...
 
 	def delete(self, db: Session, *, recipient_id, caregiver_id) -> None:
+		...
+
+
+class GroupMemberInvitesRepo(Protocol):
+	def create(self, db: Session, *, group_id: str, invited_email: str, invited_full_name: Optional[str], invited_by: str, expires_at=None) -> GroupMemberInvite:
+		...
+
+	def get(self, db: Session, *, invite_id: str) -> Optional[GroupMemberInvite]:
+		...
+
+	def get_pending_by_email(self, db: Session, *, group_id: str, email: str) -> Optional[GroupMemberInvite]:
+		...
+
+	def list_pending_paginated(self, db: Session, *, group_id: str, limit: int, offset: int) -> List[GroupMemberInvite]:
+		...
+
+	def count_pending(self, db: Session, *, group_id: str) -> int:
+		...
+
+	def set_status(self, db: Session, *, invite: GroupMemberInvite, status: str) -> None:
+		...
+
+
+class DependentsRepo(Protocol):
+	def create(self, db: Session, *, group_id: str, guardian_user_id: str, full_name: Optional[str], dob, email: Optional[str]) -> Dependent:
+		...
+
+	def get(self, db: Session, *, dependent_id: str) -> Optional[Dependent]:
+		...
+
+	def list_by_group_paginated(self, db: Session, *, group_id: str, limit: int, offset: int) -> List[Dependent]:
+		...
+
+	def count_by_group(self, db: Session, *, group_id: str) -> int:
+		...
+
+	def soft_delete(self, db: Session, *, dependent: Dependent) -> None:
 		...
 
 

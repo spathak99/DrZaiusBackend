@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 import secrets
 
-from backend.core.constants import Errors, Keys, Fields, Messages, LogEvents, GroupRoles, DeepLink, TokenTypes
+from backend.core.constants import Errors, Keys, Fields, Messages, LogEvents, GroupRoles, DeepLink, TokenTypes, Roles
 from backend.db.models import User, Group
 from backend.repositories.group_member_invites_repo import GroupMemberInvitesRepository
 from backend.repositories.group_memberships_repo import GroupMembershipsRepository
@@ -14,11 +14,13 @@ from backend.services.email_service import send_invite_email
 from backend.services.invite_signing import sign_invite, verify_invite
 from backend.core.settings import get_settings
 from backend.services.auth_service import hash_password
+from backend.schemas.common import InvitationStatus
+from backend.repositories.interfaces import GroupMemberInvitesRepo
 
 
 class GroupMemberInvitesService:
-	def __init__(self, *, repo: GroupMemberInvitesRepository | None = None, memberships: GroupMembershipsRepository | None = None) -> None:
-		self.repo = repo or GroupMemberInvitesRepository()
+	def __init__(self, *, repo: GroupMemberInvitesRepo | None = None, memberships: GroupMembershipsRepository | None = None) -> None:
+		self.repo: GroupMemberInvitesRepo = repo or GroupMemberInvitesRepository()
 		self.memberships = memberships or GroupMembershipsRepository()
 		self.logger = logging.getLogger(__name__)
 
@@ -78,7 +80,7 @@ class GroupMemberInvitesService:
 		if not invite_id or not group_id or not email:
 			raise ValueError(Errors.INVALID_PAYLOAD)
 		invite = self.repo.get(db, invite_id=str(invite_id))
-		if invite is None or str(invite.group_id) != str(group_id) or invite.status != "pending":
+		if invite is None or str(invite.group_id) != str(group_id) or invite.status != InvitationStatus.pending.value:
 			raise ValueError(Errors.USER_NOT_FOUND)
 		group = db.scalar(select(Group).where(Group.id == group_id))
 		if group is None:
@@ -89,7 +91,7 @@ class GroupMemberInvitesService:
 				username=email,
 				email=email,
 				password_hash=hash_password(secrets.token_urlsafe(12)),
-				role="caregiver",
+				role=Roles.CAREGIVER,
 				full_name=invite.invited_full_name,
 				corpus_uri=f"user://{email}/corpus",
 				chat_history_uri=None,
@@ -98,7 +100,7 @@ class GroupMemberInvitesService:
 			db.commit()
 			db.refresh(user)
 		self.memberships.add(db, group_id=str(group_id), user_id=str(user.id), role=GroupRoles.MEMBER)
-		self.repo.set_status(db, invite=invite, status="accepted")
+		self.repo.set_status(db, invite=invite, status=InvitationStatus.accepted.value)
 		self.logger.info(LogEvents.INVITATION_ACCEPTED, extra={"groupId": str(group_id), "actorEmail": email, "invitationId": str(invite.id)})
 		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.GROUP_ID: str(group_id), Fields.USERNAME: user.username}
 

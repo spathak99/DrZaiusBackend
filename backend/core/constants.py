@@ -462,6 +462,8 @@ class LogEvents:
     FILE_UPLOADED: Final[str] = "file_uploaded"
     FILE_REDACT_QUEUED: Final[str] = "file_redact_queued"
     FILE_REDACT_UPLOADED: Final[str] = "file_redact_uploaded"
+    DEPENDENT_CREATED: Final[str] = "dependent_created"
+    DEPENDENT_DELETED: Final[str] = "dependent_deleted"
 
 class TokenTypes:
     GROUP_MEMBER: Final[str] = "group_member"
