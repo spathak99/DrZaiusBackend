@@ -30,7 +30,8 @@ class DependentsService:
 				parsed_dob = date.fromisoformat(dob)
 			except Exception:
 				raise ValueError(Errors.INVALID_PAYLOAD)
-		row = self.repo.create(db, group_id=group_id, guardian_user_id=actor_id, full_name=full_name, dob=parsed_dob, email=email)
+		norm_email = (email or "").strip().lower() if email else None
+		row = self.repo.create(db, group_id=group_id, guardian_user_id=actor_id, full_name=full_name, dob=parsed_dob, email=norm_email)
 		self.logger.info(LogEvents.DEPENDENT_CREATED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id)})
 		return {
 			Fields.ID: str(row.id),
