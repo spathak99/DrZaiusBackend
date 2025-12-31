@@ -22,6 +22,8 @@ from backend.repositories.invitations_repo import InvitationsRepository
 from backend.repositories.access_repo import AccessRepository
 from backend.repositories.group_member_invites_repo import GroupMemberInvitesRepository
 from backend.services.group_member_invites_service import GroupMemberInvitesService
+from backend.repositories.dependents_repo import DependentsRepository
+from backend.services.dependents_service import DependentsService
 
 
 auth_service = AuthService()
@@ -92,4 +94,7 @@ def get_dlp_service() -> DlpService:
 
 def get_group_member_invites_service() -> GroupMemberInvitesService:
 	return GroupMemberInvitesService(repo=GroupMemberInvitesRepository(), memberships=GroupMembershipsRepository())
+
+def get_dependents_service() -> DependentsService:
+	return DependentsService(repo=DependentsRepository(), memberships=GroupMembershipsRepository())
 

@@ -6,10 +6,11 @@ from pydantic import BaseModel
 
 from backend.core.constants import Prefix, Tags, Summaries, Keys, Fields, Errors, Routes, GroupRoles, Messages, Headers, Pagination as PaginationConsts
 from backend.db.database import get_db
-from backend.routers.deps import get_current_user, get_groups_service, get_memberships_service, get_group_member_invites_service
+from backend.routers.deps import get_current_user, get_groups_service, get_memberships_service, get_group_member_invites_service, get_dependents_service
 from backend.db.models import User
 from backend.services.groups_service import GroupsService, MembershipsService
 from backend.services.group_member_invites_service import GroupMemberInvitesService
+from backend.services.dependents_service import DependentsService
 from backend.utils.pagination import clamp_limit_offset
 from backend.routers.http_errors import status_for_error
 from backend.schemas.groups import (
@@ -28,6 +29,11 @@ from backend.schemas.group_invites import (
     GroupMemberInviteItem,
     GroupMemberInvitesEnvelope,
     GroupMemberInviteCreatedEnvelope,
+)
+from backend.schemas.dependents import (
+    DependentCreate,
+    DependentItem,
+    DependentsEnvelope,
 )
 
 router = APIRouter(prefix=Prefix.GROUPS, tags=[Tags.GROUPS], dependencies=[Depends(get_current_user)])
@@ -64,6 +70,66 @@ async def list_my_groups(current_user: User = Depends(get_current_user), db: Ses
     rows = svc.list_mine(db, user_id=str(current_user.id))
     items = [GroupListItem(id=r["id"], name=r["name"], description=r.get("description")) for r in rows]
     return {"items": items}
+
+
+# Dependents CRUD
+@router.post(Routes.ID + "/dependents", summary="Create dependent", response_model=DependentItem)
+async def create_dependent(
+    id: str,
+    payload: DependentCreate = Body(default=None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    svc: DependentsService = Depends(get_dependents_service),
+) -> Dict[str, Any]:
+    try:
+        data = svc.create(db, group_id=id, actor_id=str(current_user.id), full_name=payload.full_name, dob=payload.dob, email=str(payload.email) if payload.email else None)
+    except ValueError as e:
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
+    return DependentItem(**{
+        "id": data.get(Fields.ID),
+        "full_name": data.get(Fields.FULL_NAME),
+        "dob": data.get("dob"),
+        "email": data.get(Fields.EMAIL),
+        "guardian_user_id": data.get("guardian_user_id"),
+    })
+
+
+@router.get(Routes.ID + "/dependents", summary="List dependents", response_model=DependentsEnvelope)
+async def list_dependents(
+    id: str,
+    response: Response,
+    limit: int = PaginationConsts.DEFAULT_LIMIT,
+    offset: int = PaginationConsts.DEFAULT_OFFSET,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    svc: DependentsService = Depends(get_dependents_service),
+) -> Dict[str, Any]:
+    limit, offset = clamp_limit_offset(limit, offset, max_limit=PaginationConsts.MAX_LIMIT)
+    try:
+        result = svc.list(db, group_id=id, actor_id=str(current_user.id), limit=limit, offset=offset)
+    except ValueError as e:
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
+    items = [DependentItem(**it) for it in result.get(Keys.ITEMS, [])]
+    response.headers[Headers.TOTAL_COUNT] = str(result.get(Keys.TOTAL, len(items)))
+    return {"items": items}
+
+
+@router.delete(Routes.ID + "/dependents" + Routes.USER_ID, status_code=status.HTTP_204_NO_CONTENT, summary="Delete dependent")
+async def delete_dependent(
+    id: str,
+    userId: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    svc: DependentsService = Depends(get_dependents_service),
+) -> None:
+    try:
+        svc.delete(db, group_id=id, actor_id=str(current_user.id), dependent_id=userId)
+    except ValueError as e:
+        detail = str(e)
+        raise HTTPException(status_code=status_for_error(detail), detail=detail)
+    return
 
 
 @router.get(Routes.ID, summary=Summaries.GROUP_GET, response_model=GroupDetailEnvelope)
