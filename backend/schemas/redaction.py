@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RedactionFinding(BaseModel):
@@ -10,8 +10,8 @@ class RedactionFinding(BaseModel):
 
 
 class RedactionResult(BaseModel):
-	findings: List[RedactionFinding] = []
-	redacted_types: List[str] = []
+	findings: List[RedactionFinding] = Field(default_factory=list)
+	redacted_types: List[str] = Field(default_factory=list)
 
 
 class RedactUploadResponse(BaseModel):
@@ -27,5 +27,5 @@ class RedactionTestRequest(BaseModel):
 class RedactionTestResponse(BaseModel):
 	input_len: int
 	output_len: int
-	findings: List[RedactionFinding] = []
+	findings: List[RedactionFinding] = Field(default_factory=list)
 
