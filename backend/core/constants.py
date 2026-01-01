@@ -353,6 +353,7 @@ class Keys:
     REDEEMED_BY: Final[str] = "redeemed_by"
     INVITED_EMAIL: Final[str] = "invited_email"
     INVITED_FULL_NAME: Final[str] = "invited_full_name"
+	TEXT: Final[str] = "text"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"
@@ -388,6 +389,9 @@ class Dlp:
         "US_DRIVERS_LICENSE_NUMBER",
     ]
 
+class Encoding:
+	UTF8: Final[str] = "utf-8"
+
 
 class DocKeys:
     DOC_ID: Final[str] = "docId"
@@ -405,6 +409,7 @@ class MimeTypes:
     TEXT_HTML: Final[str] = "text/html"
     IMAGE_PNG: Final[str] = "image/png"
     IMAGE_JPEG: Final[str] = "image/jpeg"
+	IMAGE_PREFIX: Final[str] = "image/"
 
 
 class ChatKeys:
@@ -479,6 +484,9 @@ class LogEvents:
     DEPENDENT_CREATED: Final[str] = "dependent_created"
     DEPENDENT_DELETED: Final[str] = "dependent_deleted"
     DEPENDENT_CONVERTED: Final[str] = "dependent_converted"
+	DLP_ENABLED: Final[str] = "dlp_enabled"
+	DLP_DISABLED: Final[str] = "dlp_disabled"
+	DLP_CLIENT_INIT_ERROR: Final[str] = "dlp_client_init_error"
 
 class TokenTypes:
     GROUP_MEMBER: Final[str] = "group_member"

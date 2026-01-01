@@ -3,22 +3,23 @@ from __future__ import annotations
 from typing import Any, Dict
 from fastapi import APIRouter, Body, Depends, status
 
-from backend.core.constants import Prefix, Tags, Summaries, Keys
+from backend.core.constants import Prefix, Tags, Summaries, Keys, MimeTypes, Encoding
 from backend.services.dlp_service import DlpService
-from backend.routers.deps import get_current_user
+from backend.routers.deps import get_current_user, get_dlp_service
 from backend.db.models import User
+from backend.schemas.redaction import RedactionTestRequest, RedactionTestResponse
 
 
 router = APIRouter(prefix=Prefix.REDACTION, tags=[Tags.RECIPIENT_DATA], dependencies=[Depends(get_current_user)])
-dlp = DlpService()
 
 
-@router.post("/test", status_code=status.HTTP_200_OK, summary=Summaries.REDACTION_TEST)
+@router.post("/test", status_code=status.HTTP_200_OK, summary=Summaries.REDACTION_TEST, response_model=RedactionTestResponse)
 async def redaction_test(
-	text: str = Body(..., embed=True),
+	payload: RedactionTestRequest = Body(...),
+	dlp: DlpService = Depends(get_dlp_service),
 	current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-	redacted, findings = dlp.redact_content(content=text.encode("utf-8"), mime_type="text/plain")
-	return {Keys.DATA: {"input_len": len(text.encode("utf-8")), "output_len": len(redacted), "findings": findings}}
+	redacted, findings = dlp.redact_content(content=payload.text.encode(Encoding.UTF8), mime_type=MimeTypes.TEXT_PLAIN)
+	return {"input_len": len(payload.text.encode(Encoding.UTF8)), "output_len": len(redacted), "findings": findings}
 
 

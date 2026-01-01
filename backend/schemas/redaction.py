@@ -20,3 +20,12 @@ class RedactUploadResponse(BaseModel):
 	data: dict
 
 
+class RedactionTestRequest(BaseModel):
+	text: str
+
+
+class RedactionTestResponse(BaseModel):
+	input_len: int
+	output_len: int
+	findings: List[RedactionFinding] = []
+

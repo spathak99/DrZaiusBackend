@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Tuple, Optional
 import logging
-from backend.core.constants import Keys, Messages, Dlp
+from backend.core.constants import Keys, Messages, Dlp, MimeTypes, Encoding, LogEvents
 from backend.core.settings import get_settings
 
 # Optional Google DLP imports at module top (safe when library not installed)
@@ -25,14 +25,14 @@ class DlpService:
 				self._client = dlp_v2.DlpServiceClient()
 				location = self._settings.dlp_location or Dlp.DEFAULT_LOCATION
 				self._parent = f"projects/{self._settings.gcp_project_id}/locations/{location}"
-				self._logger.info("DLP enabled: using Google Cloud DLP (location=%s)", location)
+				self._logger.info("%s (location=%s)", LogEvents.DLP_ENABLED, location)
 			except Exception as exc:
 				# Fall back silently to stub behavior; log at WARN for awareness
 				self._client = None
 				self._parent = None
-				self._logger.warning("DLP disabled (client init error): %s", exc)
+				self._logger.warning("%s: %s", LogEvents.DLP_CLIENT_INIT_ERROR, exc)
 		else:
-			self._logger.info("DLP disabled: enable_dlp=%s, project_id set=%s", self._settings.enable_dlp, bool(self._settings.gcp_project_id))
+			self._logger.info("%s: enable_dlp=%s, project_id set=%s", LogEvents.DLP_DISABLED, self._settings.enable_dlp, bool(self._settings.gcp_project_id))
 
     def redact(self, *, bucket: str, object_name: str) -> Dict[str, Any]:
         """
@@ -62,7 +62,7 @@ class DlpService:
 		}
 
 		# Branch by content type
-		if mime_type and mime_type.startswith("image/"):
+		if mime_type and mime_type.startswith(MimeTypes.IMAGE_PREFIX):
 			# Image redaction (black boxes over findings)
 			if types is None:
 				return content, []
@@ -79,7 +79,7 @@ class DlpService:
 			return bytes(response.redacted_image), []
 
 		# Default to text processing
-		text_value = content.decode("utf-8", errors="ignore")
+		text_value = content.decode(Encoding.UTF8, errors="ignore")
 
 		# First inspect to capture findings for caller UX
 		inspect_resp = self._client.inspect_content(
