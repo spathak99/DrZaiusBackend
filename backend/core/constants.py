@@ -377,6 +377,16 @@ class VertexEndpoints:
 
 class Dlp:
     DEFAULT_MIN_LIKELIHOOD: Final[str] = "POSSIBLE"
+    DEFAULT_LOCATION: Final[str] = "global"
+    # Default set of info types to inspect/redact when not explicitly configured
+    DEFAULT_INFO_TYPES: Final[list[str]] = [
+        "EMAIL_ADDRESS",
+        "PHONE_NUMBER",
+        "CREDIT_CARD_NUMBER",
+        "US_SOCIAL_SECURITY_NUMBER",
+        "DATE_OF_BIRTH",
+        "US_DRIVERS_LICENSE_NUMBER",
+    ]
 
 
 class DocKeys:
