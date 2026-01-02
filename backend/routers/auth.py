@@ -1,3 +1,4 @@
+"""Auth endpoints for signup, login, me, logout, and password change."""
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Header, status, Request
 from sqlalchemy.orm import Session
@@ -19,6 +20,7 @@ service = AuthService()
 @router.post(Routes.AUTH_SIGNUP, status_code=status.HTTP_201_CREATED, summary=Summaries.SIGNUP, response_model=TokenResponse)
 @rl_public()
 async def signup(request: Request, payload: SignupRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Create a new user and return an access token."""
     try:
         _, token = service.signup(
             db,
@@ -49,6 +51,7 @@ async def signup(request: Request, payload: SignupRequest = Body(default=None), 
 @router.post(Routes.AUTH_LOGIN, summary=Summaries.LOGIN, response_model=TokenResponse)
 @rl_public()
 async def login(request: Request, payload: LoginRequest = Body(default=None), db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Authenticate an existing user and return an access token."""
     try:
         _, token = service.login(db, username=payload.username, password=payload.password)
         return {"access_token": token, "token_type": Messages.TOKEN_TYPE_BEARER}
@@ -61,6 +64,7 @@ async def auth_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
+    """Return the current authenticated user's profile."""
     user = current_user
     return {
         Fields.ID: user.id,
@@ -87,6 +91,7 @@ async def auth_me(
 
 @router.post(Routes.AUTH_LOGOUT, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.LOGOUT)
 async def logout() -> None:
+    """No-op logout endpoint for stateless tokens."""
     return
 
 
@@ -96,6 +101,7 @@ async def change_password(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
+    """Change the current user's password."""
     try:
         service.change_password(
             db,

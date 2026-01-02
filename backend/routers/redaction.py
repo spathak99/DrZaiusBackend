@@ -1,3 +1,11 @@
+"""
+Redaction endpoints.
+
+Provides:
+- POST /redaction/test: quick inline text redaction check
+- GET /redaction/status: feature/config readiness
+- POST /redaction/file: redact uploaded text or image
+"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, status, UploadFile, File, HTTPException
@@ -20,6 +28,11 @@ async def redaction_test(
 	dlp: DlpService = Depends(get_dlp_service),
 	current_user: User = Depends(get_current_user),
 ) -> RedactionTestResponse:
+	"""
+	Perform a quick DLP redaction against inline text.
+
+	Returns input/output lengths, findings, and the redacted text.
+	"""
 	redacted, findings = dlp.redact_content(content=payload.text.encode(Encoding.UTF8), mime_type=MimeTypes.TEXT_PLAIN)
 	return {
 		"input_len": len(payload.text.encode(Encoding.UTF8)),
@@ -33,6 +46,9 @@ async def redaction_status(
 	dlp: DlpService = Depends(get_dlp_service),
 	current_user: User = Depends(get_current_user),
 ) -> RedactionStatusResponse:
+	"""
+	Report whether DLP is enabled and the client is ready to serve requests.
+	"""
 	from backend.core.settings import get_settings
 	settings = get_settings()
 	return {
@@ -49,6 +65,11 @@ async def redact_file(
 	dlp: DlpService = Depends(get_dlp_service),
 	current_user: User = Depends(get_current_user),
 ):
+	"""
+	Redact an uploaded file.
+	- Text: returns JSON with redactedText and findings
+	- Image: returns redacted bytes as a streamed response
+	"""
 	# Read file bytes
 	data = await file.read()
 	content_type = file.content_type or ""
