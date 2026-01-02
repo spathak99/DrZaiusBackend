@@ -380,6 +380,10 @@ class VertexEndpoints:
 class Dlp:
     DEFAULT_MIN_LIKELIHOOD: Final[str] = "POSSIBLE"
     DEFAULT_LOCATION: Final[str] = "global"
+    # Common info types and helpers
+    CUSTOM_SSN_NAME: Final[str] = "CUSTOM_SSN"
+    REGEX_SSN: Final[str] = r"\b\d{3}-\d{2}-\d{4}\b"
+    PARENT_PATH_TEMPLATE: Final[str] = "projects/{project_id}/locations/{location}"
     # Default set of info types to inspect/redact when not explicitly configured
     DEFAULT_INFO_TYPES: Final[list[str]] = [
         "EMAIL_ADDRESS",
@@ -389,6 +393,27 @@ class Dlp:
         "DATE_OF_BIRTH",
         "US_DRIVERS_LICENSE_NUMBER",
     ]
+
+class DlpReq:
+    # Request/field keys for Google DLP JSON payloads
+    PARENT: Final[str] = "parent"
+    INSPECT_CONFIG: Final[str] = "inspect_config"
+    ITEM: Final[str] = "item"
+    VALUE: Final[str] = "value"
+    BYTE_ITEM: Final[str] = "byte_item"
+    TYPE_: Final[str] = "type_"
+    DATA: Final[str] = "data"
+    INFO_TYPES: Final[str] = "info_types"
+    MIN_LIKELIHOOD: Final[str] = "min_likelihood"
+    INCLUDE_QUOTE: Final[str] = "include_quote"
+    CUSTOM_INFO_TYPES: Final[str] = "custom_info_types"
+    REGEX: Final[str] = "regex"
+    PATTERN: Final[str] = "pattern"
+    PRIMITIVE_TRANSFORMATION: Final[str] = "primitive_transformation"
+    REPLACE_WITH_INFO_TYPE_CONFIG: Final[str] = "replace_with_info_type_config"
+    INFO_TYPE_TRANSFORMATIONS: Final[str] = "info_type_transformations"
+    TRANSFORMATIONS: Final[str] = "transformations"
+    DEIDENTIFY_CONFIG: Final[str] = "deidentify_config"
 
 class Encoding:
     UTF8: Final[str] = "utf-8"
@@ -488,6 +513,7 @@ class LogEvents:
     DLP_ENABLED: Final[str] = "dlp_enabled"
     DLP_DISABLED: Final[str] = "dlp_disabled"
     DLP_CLIENT_INIT_ERROR: Final[str] = "dlp_client_init_error"
+    DLP_REDACT_IMAGE_FAILED: Final[str] = "dlp_redact_image_failed"
 
 class TokenTypes:
     GROUP_MEMBER: Final[str] = "group_member"

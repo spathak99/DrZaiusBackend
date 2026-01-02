@@ -1,3 +1,9 @@
+"""
+SQLAlchemy ORM models for DrZaius backend.
+
+Defines core entities such as users, groups, chats, messages, invitations,
+files, access edges, dependents, and payment codes.
+"""
 import uuid
 import sqlalchemy as sa
 from datetime import datetime
@@ -11,6 +17,7 @@ from backend.core.constants import Tables, Fields, Keys, PaymentCodeStatus
 
 
 class Base(DeclarativeBase):
+    """Base declarative class for all models."""
     pass
 
 
@@ -50,6 +57,7 @@ def ts_updated() -> Mapped[datetime]:
 
 
 class User(Base):
+    """Application user with auth credentials, profile fields, and relations."""
     __tablename__ = Tables.USERS
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -88,6 +96,7 @@ class User(Base):
 
 
 class RecipientCaregiverAccess(Base):
+    """Edge granting a caregiver access to a recipient with optional access level."""
     __tablename__ = Tables.RECIPIENT_CAREGIVER_ACCESS
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -99,6 +108,7 @@ class RecipientCaregiverAccess(Base):
 
 
 class Chat(Base):
+    """Chat entity containing participants and messages."""
     __tablename__ = Tables.CHATS
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -113,6 +123,7 @@ class Chat(Base):
 
 
 class ChatParticipant(Base):
+    """Membership edge between a user and a chat."""
     __tablename__ = Tables.CHAT_PARTICIPANTS
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -126,6 +137,7 @@ class ChatParticipant(Base):
 
 
 class Message(Base):
+    """Message posted in a chat by an optional sender."""
     __tablename__ = Tables.MESSAGES
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -140,6 +152,7 @@ class Message(Base):
 
 
 class Invitation(Base):
+    """Invitation linking caregivers and recipients, optionally by email prior to signup."""
     __tablename__ = Tables.INVITATIONS
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -156,6 +169,7 @@ class Invitation(Base):
 
 
 class File(Base):
+    """A file uploaded on behalf of a recipient."""
     __tablename__ = Tables.FILES
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -167,6 +181,7 @@ class File(Base):
 
 
 class FileAccess(Base):
+    """Access control edge granting a caregiver access to a file."""
     __tablename__ = Tables.FILE_ACCESS
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -178,6 +193,7 @@ class FileAccess(Base):
 
 
 class Group(Base):
+    """Group container for multi-user plans, with an owner and members."""
     __tablename__ = Tables.GROUPS
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -193,6 +209,7 @@ class Group(Base):
 
 
 class GroupMembership(Base):
+    """Membership edge between a user and a group with a role."""
     __tablename__ = Tables.GROUP_MEMBERSHIPS
 
     __table_args__ = (
@@ -211,6 +228,7 @@ class GroupMembership(Base):
 
 
 class GroupPaymentCode(Base):
+    """Payment code associated with a group for onboarding and billing flows."""
     __tablename__ = Tables.GROUP_PAYMENT_CODES
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -227,6 +245,7 @@ class GroupPaymentCode(Base):
 
 
 class GroupMemberInvite(Base):
+    """Invite issued to an email to join a group as a member."""
     __tablename__ = Tables.GROUP_MEMBER_INVITES
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -241,6 +260,7 @@ class GroupMemberInvite(Base):
 
 
 class Dependent(Base):
+    """Dependent record under a group/guardian; convertible into a full user account."""
     __tablename__ = Tables.DEPENDENTS
 
     id: Mapped[uuid.UUID] = uuid_pk()

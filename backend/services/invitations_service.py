@@ -1,3 +1,4 @@
+"""Invitations service: send/list/accept/decline invitations between users."""
 from __future__ import annotations
 
 import uuid
@@ -27,10 +28,12 @@ logger = logging.getLogger(__name__)
 
 
 class InvitationsService:
+	"""Service for managing invitations between caregivers and recipients."""
 	def __init__(self, repo: InvitationsRepo | None = None) -> None:
 		self.repo: InvitationsRepo = repo or InvitationsRepository()
 
 	def _sender(self, user: Optional[User]) -> Dict[str, Optional[str]]:
+		"""Shape sender metadata payload from a user."""
 		return {
 			Keys.SENDER_ID: str(user.id) if user else None,
 			Keys.SENDER_EMAIL: user.email if user else None,
@@ -38,6 +41,7 @@ class InvitationsService:
 		}
 
 	def _accept_url(self, payload: Dict[str, Any]) -> Optional[str]:
+		"""Create a signed deep link token and return accept URL; None on failure."""
 		try:
 			token = sign_invite(payload)
 			return f"{DeepLink.SCHEME}://{DeepLink.INVITE_ACCEPT_PATH}?token={token}"
@@ -45,6 +49,7 @@ class InvitationsService:
 			return None
 
 	def _map_list_item(self, inv: Invitation, other: Optional[User]) -> Dict[str, Any]:
+		"""Map an invitation to list payload with optional counterparty."""
 		return {
 			Fields.ID: str(inv.id),
 			Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
@@ -55,6 +60,7 @@ class InvitationsService:
 		}
 
 	def _map_created(self, inv: Invitation, sender: Optional[User], accept_url: Optional[str]) -> Dict[str, Any]:
+		"""Map an invitation create result with sender and accept URL."""
 		return {
 			Fields.ID: str(inv.id),
 			Keys.CAREGIVER_ID: str(inv.caregiver_id) if inv.caregiver_id else None,
@@ -66,6 +72,7 @@ class InvitationsService:
 		}
 
 	def _map_action(self, message: str, *, invitation_id: str, caregiver_id: Optional[str] = None, recipient_id: Optional[str] = None) -> Dict[str, Any]:
+		"""Common response for accept/decline actions."""
 		data: Dict[str, Any] = {Keys.MESSAGE: message, Keys.INVITATION_ID: invitation_id}
 		if caregiver_id is not None:
 			data[Keys.CAREGIVER_ID] = caregiver_id
@@ -74,6 +81,7 @@ class InvitationsService:
 		return data
 
 	def send_from_caregiver(self, db: Session, *, caregiver_id: str, email: str) -> Dict[str, Any]:
+		"""Caregiver invites a recipient by email."""
 		email = (email or "").strip().lower()
 		caregiver = db.scalar(select(User).where(User.id == caregiver_id))
 		if caregiver is None:
@@ -92,6 +100,7 @@ class InvitationsService:
 		return self._map_created(inv, caregiver, accept_url)
 
 	def send_from_recipient(self, db: Session, *, recipient_id: str, email: str) -> Dict[str, Any]:
+		"""Recipient invites a caregiver by email."""
 		email = (email or "").strip().lower()
 		recipient = db.scalar(select(User).where(User.id == recipient_id))
 		if recipient is None:
@@ -110,6 +119,7 @@ class InvitationsService:
 		return self._map_created(inv, recipient, accept_url)
 
 	def list_for_caregiver(self, db: Session, *, caregiver_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
+		"""List pending invitations targeting a caregiver."""
 		caregiver = db.scalar(select(User).where(User.id == caregiver_id))
 		if caregiver is None:
 			raise ValueError(Errors.USER_NOT_FOUND)
@@ -126,6 +136,7 @@ class InvitationsService:
 		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def list_for_recipient(self, db: Session, *, recipient_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
+		"""List pending invitations targeting a recipient."""
 		recipient = db.scalar(select(User).where(User.id == recipient_id))
 		if recipient is None:
 			raise ValueError(Errors.RECIPIENT_NOT_FOUND)
@@ -142,6 +153,7 @@ class InvitationsService:
 		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def list_sent_by_recipient(self, db: Session, *, recipient_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
+		"""List pending invitations sent by a recipient."""
 		recipient = db.scalar(select(User).where(User.id == recipient_id))
 		if recipient is None:
 			raise ValueError(Errors.RECIPIENT_NOT_FOUND)
@@ -159,6 +171,7 @@ class InvitationsService:
 		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def caregiver_accept(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
+		"""Caregiver accepts an invitation addressed to them."""
 		try:
 			inv_uuid = uuid.UUID(invitation_id)
 		except Exception:
@@ -179,6 +192,7 @@ class InvitationsService:
 		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=invitation_id, caregiver_id=str(caregiver_id))
 
 	def caregiver_decline(self, db: Session, *, caregiver_id: str, invitation_id: str) -> Dict[str, Any]:
+		"""Caregiver declines an invitation addressed to them."""
 		try:
 			inv_uuid = uuid.UUID(invitation_id)
 		except Exception:
@@ -196,6 +210,7 @@ class InvitationsService:
 		return self._map_action(Messages.INVITATION_DECLINED, invitation_id=invitation_id, caregiver_id=str(caregiver_id))
 
 	def recipient_accept(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
+		"""Recipient accepts an invitation addressed to them or their email."""
 		try:
 			inv_uuid = uuid.UUID(invitation_id)
 		except Exception:
@@ -221,6 +236,7 @@ class InvitationsService:
 		return self._map_action(Messages.INVITATION_ACCEPTED, invitation_id=invitation_id, recipient_id=str(recipient_id))
 
 	def recipient_decline(self, db: Session, *, recipient_id: str, invitation_id: str) -> Dict[str, Any]:
+		"""Recipient declines an invitation addressed to them or their email."""
 		try:
 			inv_uuid = uuid.UUID(invitation_id)
 		except Exception:
@@ -241,6 +257,7 @@ class InvitationsService:
 		return self._map_action(Messages.INVITATION_DECLINED, invitation_id=invitation_id, recipient_id=str(recipient_id))
 
 	def accept_by_token(self, db: Session, *, token: str) -> Dict[str, Any]:
+		"""Accept an invitation via a signed token (deep link)."""
 		if not token:
 			raise ValueError(Errors.MISSING_TOKEN)
 		try:

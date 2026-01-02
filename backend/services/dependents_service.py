@@ -1,3 +1,4 @@
+"""Dependents service: manage dependent records and conversions to accounts."""
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
@@ -16,12 +17,14 @@ from backend.services.auth_service import hash_password
 
 
 class DependentsService:
+	"""Service for CRUD on dependents within a group, including conversion."""
 	def __init__(self, *, repo: DependentsRepo | None = None, memberships: GroupMembershipsRepository | None = None) -> None:
 		self.repo: DependentsRepo = repo or DependentsRepository()
 		self.memberships = memberships or GroupMembershipsRepository()
 		self.logger = logging.getLogger(__name__)
 
 	def create(self, db: Session, *, group_id: str, actor_id: str, full_name: Optional[str], dob: Optional[str], email: Optional[str]) -> Dict[str, Any]:
+		"""Create a dependent under a group; actor must be admin or guardian."""
 		# Guardian is the actor; admins may create on behalf of themselves as guardian
 		ensure_admin_or_guardian(self.memberships, db, group_id=group_id, actor_id=actor_id, guardian_user_id=actor_id)
 		parsed_dob: Optional[date] = None
@@ -42,6 +45,7 @@ class DependentsService:
 		}
 
 	def list(self, db: Session, *, group_id: str, actor_id: str, limit: int, offset: int) -> Dict[str, Any]:
+		"""List dependents for a group (any group member)."""
 		# Any group member can list dependents
 		ensure_member(self.memberships, db, group_id=group_id, actor_id=actor_id)
 		total = self.repo.count_by_group(db, group_id=group_id)
@@ -59,6 +63,7 @@ class DependentsService:
 		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def delete(self, db: Session, *, group_id: str, actor_id: str, dependent_id: str) -> None:
+		"""Soft-delete a dependent (admin or guardian)."""
 		row = self.repo.get(db, dependent_id=dependent_id)
 		if row is None or str(row.group_id) != str(group_id):
 			return
@@ -69,6 +74,7 @@ class DependentsService:
 		return
 
 	def convert_to_account(self, db: Session, *, group_id: str, actor_id: str, dependent_id: str, email: Optional[str]) -> Dict[str, Any]:
+		"""Convert a dependent into a full user account and add to the group."""
 		row = self.repo.get(db, dependent_id=dependent_id)
 		if row is None or str(row.group_id) != str(group_id):
 			raise ValueError(Errors.USER_NOT_FOUND)
