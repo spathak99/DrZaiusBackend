@@ -28,6 +28,7 @@ class RedactionTestResponse(BaseModel):
 	input_len: int
 	output_len: int
 	findings: List[RedactionFinding] = Field(default_factory=list)
+	redactedText: str
 
 
 class RedactionStatusResponse(BaseModel):
@@ -35,4 +36,9 @@ class RedactionStatusResponse(BaseModel):
 	projectId: str
 	location: str
 	clientReady: bool
+
+
+class RedactionTextFileResponse(BaseModel):
+	redactedText: str
+	findings: List[RedactionFinding] = Field(default_factory=list)
 

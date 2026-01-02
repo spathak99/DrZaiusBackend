@@ -323,7 +323,7 @@ class Keys:
     SENT_BY: Final[str] = "sent_by"
     JOB_ID: Final[str] = "jobId"
     PROJECT_ID: Final[str] = "projectId"
-	LOCATION: Final[str] = "location"
+    LOCATION: Final[str] = "location"
     BUCKET: Final[str] = "bucket"
     OBJECT: Final[str] = "object"
     VERTEX_ENABLED: Final[str] = "vertexEnabled"
@@ -354,7 +354,7 @@ class Keys:
     REDEEMED_BY: Final[str] = "redeemed_by"
     INVITED_EMAIL: Final[str] = "invited_email"
     INVITED_FULL_NAME: Final[str] = "invited_full_name"
-	TEXT: Final[str] = "text"
+    TEXT: Final[str] = "text"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"
@@ -391,7 +391,7 @@ class Dlp:
     ]
 
 class Encoding:
-	UTF8: Final[str] = "utf-8"
+    UTF8: Final[str] = "utf-8"
 
 
 class DocKeys:
@@ -410,7 +410,7 @@ class MimeTypes:
     TEXT_HTML: Final[str] = "text/html"
     IMAGE_PNG: Final[str] = "image/png"
     IMAGE_JPEG: Final[str] = "image/jpeg"
-	IMAGE_PREFIX: Final[str] = "image/"
+    IMAGE_PREFIX: Final[str] = "image/"
 
 
 class ChatKeys:
@@ -485,9 +485,9 @@ class LogEvents:
     DEPENDENT_CREATED: Final[str] = "dependent_created"
     DEPENDENT_DELETED: Final[str] = "dependent_deleted"
     DEPENDENT_CONVERTED: Final[str] = "dependent_converted"
-	DLP_ENABLED: Final[str] = "dlp_enabled"
-	DLP_DISABLED: Final[str] = "dlp_disabled"
-	DLP_CLIENT_INIT_ERROR: Final[str] = "dlp_client_init_error"
+    DLP_ENABLED: Final[str] = "dlp_enabled"
+    DLP_DISABLED: Final[str] = "dlp_disabled"
+    DLP_CLIENT_INIT_ERROR: Final[str] = "dlp_client_init_error"
 
 class TokenTypes:
     GROUP_MEMBER: Final[str] = "group_member"
