@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, status, UploadFile, File, HTTPExce
 from fastapi.responses import StreamingResponse
 import io
 
-from backend.core.constants import Prefix, Tags, Summaries, MimeTypes, Encoding, Keys
+from backend.core.constants import Prefix, Tags, Summaries, MimeTypes, Encoding
 from backend.services.dlp_service import DlpService
 from backend.routers.deps import get_current_user, get_dlp_service
 from backend.db.models import User
