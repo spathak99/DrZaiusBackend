@@ -355,6 +355,11 @@ class Keys:
     INVITED_EMAIL: Final[str] = "invited_email"
     INVITED_FULL_NAME: Final[str] = "invited_full_name"
     TEXT: Final[str] = "text"
+    MIME_TYPE: Final[str] = "mimeType"
+    REDACTED: Final[str] = "redacted"
+    FINDINGS: Final[str] = "findings"
+    REDACTED_TYPES: Final[str] = "redacted_types"
+    SIZE_BYTES: Final[str] = "sizeBytes"
     # Common log/response keys not covered above
     ACTOR_ID: Final[str] = "actorId"
     TARGET_USER_ID: Final[str] = "targetUserId"

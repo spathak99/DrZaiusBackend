@@ -1,3 +1,11 @@
+"""
+Recipient files endpoints.
+
+Upload behavior:
+- Validates size (Upload.MAX_UPLOAD_MB) and MIME.
+- If DLP is enabled and ready, redacts text/images in-memory before storing.
+- Returns mimeType, redacted flag, and findings (for text) alongside data.
+"""
 from typing import Any, Dict, List
 from fastapi import APIRouter, status, Depends, HTTPException, UploadFile, File
 import logging
@@ -42,7 +50,14 @@ async def upload_recipient_file(
     current_user: User = Depends(get_current_user),
     docs: DocsService = Depends(get_docs_service),
     ingestion: IngestionService = Depends(get_ingestion_service),
+    dlp: DlpService = Depends(get_dlp_service),
 ) -> Dict[str, Any]:
+    """
+    Upload a file for a recipient. If DLP is enabled and available:
+    - Redacts text inputs and overlays black boxes on images.
+    - Stores redacted bytes instead of the original.
+    Response always includes mimeType and redacted flag; findings only for text.
+    """
     user = db.scalar(select(User).where(User.id == id))
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
@@ -53,8 +68,25 @@ async def upload_recipient_file(
     if size_bytes > max_bytes:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=Errors.PAYLOAD_TOO_LARGE)
     mime = file.content_type or MimeTypes.APPLICATION_OCTET_STREAM
-    if mime not in (MimeTypes.APPLICATION_PDF, MimeTypes.IMAGE_PNG, MimeTypes.IMAGE_JPEG):
+    # Allow common text types in addition to images/PDF for pre-MVP
+    allowed = {
+        MimeTypes.APPLICATION_PDF,
+        MimeTypes.IMAGE_PNG,
+        MimeTypes.IMAGE_JPEG,
+        MimeTypes.TEXT_PLAIN,
+        MimeTypes.APPLICATION_JSON,
+    }
+    if mime not in allowed:
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=Errors.UNSUPPORTED_MEDIA_TYPE)
+    # DLP redaction (feature-flagged and client-ready)
+    redacted_bytes = content
+    findings: List[Dict[str, Any]] = []
+    attempted_redaction = False
+    if settings.enable_dlp and dlp.is_ready():
+        if mime.startswith(MimeTypes.IMAGE_PREFIX) or mime.startswith("text/") or mime in (MimeTypes.APPLICATION_JSON,):
+            attempted_redaction = True
+            redacted_bytes, findings = dlp.redact_content(content=content, mime_type=mime if mime.startswith(MimeTypes.IMAGE_PREFIX) else MimeTypes.TEXT_PLAIN)
+    redacted_flag = redacted_bytes != content
     # If pipeline is enabled, enqueue to temp bucket + Pub/Sub instead of direct RAG
     if settings.enable_pipeline:
         if not user.gcp_project_id or not user.temp_bucket:
@@ -65,14 +97,41 @@ async def upload_recipient_file(
             temp_bucket=user.temp_bucket,
             file_name=file.filename or "upload",
             content_type=mime,
-            content=content,
+            content=redacted_bytes,
         )
-        logger.info(LogEvents.FILE_QUEUED, extra={"recipientId": id, "mime": mime, "size": size_bytes})
-        return {Keys.MESSAGE: Messages.FILE_QUEUED, Keys.RECIPIENT_ID: id, Keys.DATA: job}
+        logger.info(
+            LogEvents.FILE_REDACT_QUEUED if redacted_flag else LogEvents.FILE_QUEUED,
+            extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED: redacted_flag},
+        )
+        data = {**job, Keys.MIME_TYPE: mime, Keys.REDACTED: redacted_flag}
+        # Only include findings for text-like content
+        if findings:
+            data[Keys.FINDINGS] = findings
+        return {
+            Keys.MESSAGE: Messages.FILE_QUEUED,
+            Keys.RECIPIENT_ID: id,
+            Keys.MIME_TYPE: mime,
+            Keys.REDACTED: redacted_flag,
+            **({Keys.FINDINGS: findings} if findings else {}),
+            Keys.DATA: data,
+        }
     # Default: direct ingestion to RAG
-    created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=mime, content=content)
-    logger.info(LogEvents.FILE_UPLOADED, extra={"recipientId": id, "mime": mime, "size": size_bytes})
-    return {Keys.MESSAGE: Messages.FILE_UPLOADED, Keys.RECIPIENT_ID: id, Keys.DATA: created}
+    created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=mime, content=redacted_bytes)
+    logger.info(
+        LogEvents.FILE_REDACT_UPLOADED if redacted_flag else LogEvents.FILE_UPLOADED,
+        extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED: redacted_flag},
+    )
+    data = {**created, Keys.MIME_TYPE: mime, Keys.REDACTED: redacted_flag}
+    if findings:
+        data[Keys.FINDINGS] = findings
+    return {
+        Keys.MESSAGE: Messages.FILE_UPLOADED,
+        Keys.RECIPIENT_ID: id,
+        Keys.MIME_TYPE: mime,
+        Keys.REDACTED: redacted_flag,
+        **({Keys.FINDINGS: findings} if findings else {}),
+        Keys.DATA: data,
+    }
 
 
 @router.get(Routes.ROOT, summary=Summaries.RECIPIENT_FILES_LIST)
@@ -164,7 +223,7 @@ async def redact_and_upload_recipient_file(
             content_type=mime,
             content=redacted_bytes,
         )
-        logger.info(LogEvents.FILE_REDACT_QUEUED, extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
+    logger.info(LogEvents.FILE_REDACT_QUEUED, extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, "redacted_types_count": len(redacted_types)})
         return {
             Keys.MESSAGE: Messages.FILE_QUEUED,
             Keys.RECIPIENT_ID: id,
@@ -177,7 +236,7 @@ async def redact_and_upload_recipient_file(
         content_type=mime,
         content=redacted_bytes,
     )
-    logger.info(LogEvents.FILE_REDACT_UPLOADED, extra={"recipientId": id, "mime": mime, "size": size_bytes, "redacted_types_count": len(redacted_types)})
+    logger.info(LogEvents.FILE_REDACT_UPLOADED, extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, "redacted_types_count": len(redacted_types)})
     return {
         Keys.MESSAGE: Messages.FILE_UPLOADED,
         Keys.RECIPIENT_ID: id,
