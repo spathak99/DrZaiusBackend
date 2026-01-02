@@ -1,0 +1,12 @@
+This is a sample document containing various PII:
+
+Name: Jane Doe
+Phone: 415-555-1212
+SSN: 123-45-6789
+Email: jane.doe@example.com
+DOB: 01/23/1980
+Credit Card: 4111-1111-1111-1111
+
+End of sample.
+
+
