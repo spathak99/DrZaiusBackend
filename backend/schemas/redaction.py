@@ -29,3 +29,10 @@ class RedactionTestResponse(BaseModel):
 	output_len: int
 	findings: List[RedactionFinding] = Field(default_factory=list)
 
+
+class RedactionStatusResponse(BaseModel):
+	enableDlp: bool
+	projectId: str
+	location: str
+	clientReady: bool
+

@@ -323,6 +323,7 @@ class Keys:
     SENT_BY: Final[str] = "sent_by"
     JOB_ID: Final[str] = "jobId"
     PROJECT_ID: Final[str] = "projectId"
+	LOCATION: Final[str] = "location"
     BUCKET: Final[str] = "bucket"
     OBJECT: Final[str] = "object"
     VERTEX_ENABLED: Final[str] = "vertexEnabled"

@@ -41,6 +41,12 @@ class DlpService:
         """
         return {Keys.BUCKET: bucket, Keys.OBJECT: object_name, Keys.STATUS: Messages.DLP_REDACTION_SCHEDULED}
 
+	def is_ready(self) -> bool:
+		"""
+		Returns True when DLP client is initialized and a valid parent path is set.
+		"""
+		return self._client is not None and self._parent is not None
+
     def redact_content(self, *, content: bytes, mime_type: Optional[str] = None) -> Tuple[bytes, List[Dict[str, Any]]]:
         """
 		Redact in-memory content using Google Cloud DLP when enabled and available.
