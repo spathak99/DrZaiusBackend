@@ -35,7 +35,7 @@ class DependentsService:
 				raise ValueError(Errors.INVALID_PAYLOAD)
 		norm_email = (email or "").strip().lower() if email else None
 		row = self.repo.create(db, group_id=group_id, guardian_user_id=actor_id, full_name=full_name, dob=parsed_dob, email=norm_email)
-		self.logger.info(LogEvents.DEPENDENT_CREATED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id)})
+		self.logger.info(LogEvents.DEPENDENT_CREATED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.DEPENDENT_ID: str(row.id)})
 		return {
 			Fields.ID: str(row.id),
 			Fields.FULL_NAME: row.full_name,
@@ -70,7 +70,7 @@ class DependentsService:
 		# Admin or guardian can delete
 		ensure_admin_or_guardian(self.memberships, db, group_id=group_id, actor_id=actor_id, guardian_user_id=str(row.guardian_user_id))
 		self.repo.soft_delete(db, dependent=row)
-		self.logger.info(LogEvents.DEPENDENT_DELETED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id)})
+		self.logger.info(LogEvents.DEPENDENT_DELETED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.DEPENDENT_ID: str(row.id)})
 		return
 
 	def convert_to_account(self, db: Session, *, group_id: str, actor_id: str, dependent_id: str, email: Optional[str]) -> Dict[str, Any]:
@@ -102,7 +102,7 @@ class DependentsService:
 		self.memberships.add(db, group_id=str(group_id), user_id=str(user.id), role=GroupRoles.MEMBER)
 		# Soft-delete dependent record after conversion
 		self.repo.soft_delete(db, dependent=row)
-		self.logger.info(LogEvents.DEPENDENT_CONVERTED, extra={"groupId": group_id, "actorId": actor_id, "dependentId": str(row.id), "userId": str(user.id)})
+		self.logger.info(LogEvents.DEPENDENT_CONVERTED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.DEPENDENT_ID: str(row.id), Keys.USER_ID: str(user.id)})
 		return {Keys.MESSAGE: Messages.GROUP_MEMBER_ADDED, Keys.USER_ID: str(user.id)}
 
 

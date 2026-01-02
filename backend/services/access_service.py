@@ -43,7 +43,7 @@ class AccessService:
 		if caregiver is None:
 			raise ValueError(Errors.USER_NOT_FOUND)
 		row = self.repo.upsert(db, recipient_id=recipient_id, caregiver_id=caregiver_id, access_level=access_level)
-		logger.info("caregiver assigned", extra={"recipientId": recipient_id, "caregiverId": caregiver_id})
+		logger.info("caregiver assigned", extra={Keys.RECIPIENT_ID: recipient_id, Keys.CAREGIVER_ID: caregiver_id})
 		return self._map_action(Messages.CAREGIVER_ASSIGNED, recipient_id=str(recipient_id), caregiver_id=str(caregiver_id), access_level=row.access_level)
 
 	def revoke(self, db: Session, *, recipient_id: str, caregiver_id: str) -> None:
@@ -56,7 +56,7 @@ class AccessService:
 			raise ValueError(Errors.RECIPIENT_NOT_FOUND)
 		row.access_level = access_level
 		db.commit()
-		logger.info("access updated", extra={"recipientId": recipient_id, "caregiverId": caregiver_id})
+		logger.info("access updated", extra={Keys.RECIPIENT_ID: recipient_id, Keys.CAREGIVER_ID: caregiver_id})
 		return self._map_action(Messages.ACCESS_UPDATED, recipient_id=str(recipient_id), caregiver_id=str(caregiver_id), access_level=row.access_level)
 
 	def list_recipient_caregivers(self, db: Session, *, recipient_id: str) -> Dict[str, Any]:

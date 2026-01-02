@@ -42,7 +42,7 @@ class GroupMemberInvitesService:
 		token = sign_invite({Keys.INVITATION_ID: str(row.id), Keys.GROUP_ID: group_id, Fields.EMAIL: email, Keys.TYPE: TokenTypes.GROUP_MEMBER})
 		accept_url = f"{DeepLink.SCHEME}://{DeepLink.INVITE_ACCEPT_PATH}?{Keys.TOKEN}={token}"
 		send_invite_email(to_email=email, accept_url=accept_url)
-		self.logger.info(LogEvents.INVITATION_SENT, extra={"groupId": group_id, "actorId": actor_id, "invitationId": str(row.id), "email": email})
+		self.logger.info(LogEvents.INVITATION_SENT, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.INVITATION_ID: str(row.id), Keys.INVITED_EMAIL: email})
 		resp = {
 			Fields.ID: str(row.id),
 			Keys.INVITED_EMAIL: row.invited_email,
@@ -103,7 +103,7 @@ class GroupMemberInvitesService:
 			db.refresh(user)
 		self.memberships.add(db, group_id=str(group_id), user_id=str(user.id), role=GroupRoles.MEMBER)
 		self.repo.set_status(db, invite=invite, status=InvitationStatus.accepted.value)
-		self.logger.info(LogEvents.INVITATION_ACCEPTED, extra={"groupId": str(group_id), "actorEmail": email, "invitationId": str(invite.id)})
+		self.logger.info(LogEvents.INVITATION_ACCEPTED, extra={Keys.GROUP_ID: str(group_id), Keys.ACTOR_EMAIL: email, Keys.INVITATION_ID: str(invite.id)})
 		return {Keys.MESSAGE: Messages.INVITATION_ACCEPTED, Keys.GROUP_ID: str(group_id), Fields.USERNAME: user.username}
 
 

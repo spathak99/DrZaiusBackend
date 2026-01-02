@@ -42,7 +42,7 @@ class PaymentCodesService:
 			expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
 		code = self._gen_code(PaymentCodes.CODE_BYTES)
 		row = self.repo.create(db, group_id=group_id, code=code, created_by=actor_id, expires_at=expires_at)
-		self.logger.info(LogEvents.PAYMENT_CODE_CREATED, extra={"groupId": group_id, "actorId": actor_id, "code": code})
+		self.logger.info(LogEvents.PAYMENT_CODE_CREATED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.CODE: code})
 		return {Keys.CODE: row.code, Keys.STATUS: row.status, Keys.EXPIRES_AT: row.expires_at}
 
 	def list_codes(self, db: Session, *, group_id: str, actor_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
@@ -63,7 +63,7 @@ class PaymentCodesService:
 		if row is None or str(row.group_id) != str(group_id):
 			raise ValueError(Errors.PAYMENT_CODE_NOT_FOUND)
 		self.repo.void(db, row=row)
-		self.logger.info(LogEvents.PAYMENT_CODE_VOIDED, extra={"groupId": group_id, "actorId": actor_id, "code": code})
+		self.logger.info(LogEvents.PAYMENT_CODE_VOIDED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.CODE: code})
 		return {Keys.CODE: code, Keys.STATUS: PaymentCodeStatus.EXPIRED}
 
 	def redeem(self, db: Session, *, code: str, user_id: str) -> Dict[str, Any]:
@@ -78,7 +78,7 @@ class PaymentCodesService:
 			self.repo.void(db, row=row)
 			raise ValueError(Errors.PAYMENT_CODE_EXPIRED)
 		self.repo.mark_redeemed(db, row=row, user_id=user_id)
-		self.logger.info(LogEvents.PAYMENT_CODE_REDEEMED, extra={"groupId": str(row.group_id), "actorId": user_id, "code": code})
+		self.logger.info(LogEvents.PAYMENT_CODE_REDEEMED, extra={Keys.GROUP_ID: str(row.group_id), Keys.ACTOR_ID: user_id, Keys.CODE: code})
 		return {Keys.MESSAGE: Messages.PAYMENT_CODE_REDEEMED, Keys.CODE: code}
 
 

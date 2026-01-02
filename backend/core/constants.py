@@ -355,6 +355,12 @@ class Keys:
     INVITED_EMAIL: Final[str] = "invited_email"
     INVITED_FULL_NAME: Final[str] = "invited_full_name"
     TEXT: Final[str] = "text"
+    # Common log/response keys not covered above
+    ACTOR_ID: Final[str] = "actorId"
+    TARGET_USER_ID: Final[str] = "targetUserId"
+    SENDER_ROLE: Final[str] = "senderRole"
+    ACTOR_EMAIL: Final[str] = "actorEmail"
+    DEPENDENT_ID: Final[str] = "dependentId"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"

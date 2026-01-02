@@ -21,7 +21,7 @@ class GroupsService:
 		group = self.groups_repo.create(db, name=name, description=description, created_by=created_by)
 		# Ensure creator is a member and an admin (idempotent)
 		self.members_repo.add(db, group_id=str(group.id), user_id=created_by, role=GroupRoles.ADMIN)
-		self.logger.info(LogEvents.GROUP_CREATED, extra={"groupId": str(group.id), "actorId": created_by})
+		self.logger.info(LogEvents.GROUP_CREATED, extra={Keys.GROUP_ID: str(group.id), Keys.ACTOR_ID: created_by})
 		return {
 			Fields.ID: str(group.id),
 			Fields.NAME: group.name,
@@ -57,7 +57,7 @@ class GroupsService:
 		group = self.groups_repo.update_name(db, group_id=group_id, name=name, description=description)
 		if group is None:
 			raise ValueError(Errors.GROUP_NOT_FOUND)
-		self.logger.info(LogEvents.GROUP_UPDATED, extra={"groupId": str(group.id), "actorId": user_id})
+		self.logger.info(LogEvents.GROUP_UPDATED, extra={Keys.GROUP_ID: str(group.id), Keys.ACTOR_ID: user_id})
 		return {
 			Fields.ID: str(group.id),
 			Fields.NAME: group.name,
@@ -72,7 +72,7 @@ class GroupsService:
 		if mine is None or mine.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 		self.groups_repo.delete(db, group_id=group_id)
-		self.logger.info(LogEvents.GROUP_DELETED, extra={"groupId": group_id, "actorId": user_id})
+		self.logger.info(LogEvents.GROUP_DELETED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: user_id})
 		return
 
 
@@ -100,7 +100,7 @@ class MembershipsService:
 	def add(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str = GroupRoles.MEMBER) -> Dict[str, Any]:
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		row = self.repo.add(db, group_id=group_id, user_id=user_id, role=role)
-		self.logger.info(LogEvents.GROUP_MEMBER_ADDED, extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
+		self.logger.info(LogEvents.GROUP_MEMBER_ADDED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.TARGET_USER_ID: user_id, Fields.ROLE: role})
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def change_role(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str) -> Dict[str, Any]:
@@ -119,7 +119,7 @@ class MembershipsService:
 			# revert
 			self.repo.change_role(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
-		self.logger.info(LogEvents.GROUP_MEMBER_ROLE_CHANGED, extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": role})
+		self.logger.info(LogEvents.GROUP_MEMBER_ROLE_CHANGED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.TARGET_USER_ID: user_id, Fields.ROLE: role})
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def remove(self, db: Session, *, group_id: str, actor_id: str, user_id: str) -> None:
@@ -139,7 +139,7 @@ class MembershipsService:
 			# undo by re-adding as admin
 			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
-		self.logger.info(LogEvents.GROUP_MEMBER_REMOVED, extra={"groupId": group_id, "actorId": actor_id, "targetUserId": user_id, "role": m.role})
+		self.logger.info(LogEvents.GROUP_MEMBER_REMOVED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.TARGET_USER_ID: user_id, Fields.ROLE: m.role})
 		return
 
 	def leave(self, db: Session, *, group_id: str, user_id: str) -> None:
@@ -158,7 +158,7 @@ class MembershipsService:
 			# re-add as admin (can't leave if last admin)
 			self.repo.add(db, group_id=group_id, user_id=user_id, role=GroupRoles.ADMIN)
 			raise ValueError(Errors.FORBIDDEN)
-		self.logger.info(LogEvents.GROUP_MEMBER_LEFT, extra={"groupId": group_id, "actorId": user_id, "targetUserId": user_id, "role": m.role})
+		self.logger.info(LogEvents.GROUP_MEMBER_LEFT, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: user_id, Keys.TARGET_USER_ID: user_id, Fields.ROLE: m.role})
 		return
 
 
