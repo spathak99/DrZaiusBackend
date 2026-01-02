@@ -1,3 +1,4 @@
+"""Ingestion service: enqueue file ingestion pipeline jobs (stubbed)."""
 import uuid
 from typing import Dict, Any
 
@@ -7,6 +8,7 @@ from backend.core.constants import Defaults
 
 
 class IngestionService:
+    """Service for enqueueing ingestion jobs to a pipeline (mock implementation)."""
     def enqueue_ingestion(
         self,
         *,

@@ -1,3 +1,4 @@
+"""Chat history service: mock read/write against a per-user history URI."""
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional

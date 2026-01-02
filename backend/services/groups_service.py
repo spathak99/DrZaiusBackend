@@ -1,3 +1,4 @@
+"""Groups services: manage groups and memberships."""
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -12,12 +13,14 @@ from backend.repositories.group_memberships_repo import GroupMembershipsReposito
 
 
 class GroupsService:
+	"""Service to create, list, get, update and delete groups."""
 	def __init__(self, *, groups_repo: GroupsRepository | None = None, members_repo: GroupMembershipsRepository | None = None) -> None:
 		self.groups_repo = groups_repo or GroupsRepository()
 		self.members_repo = members_repo or GroupMembershipsRepository()
 		self.logger = logging.getLogger(__name__)
 
 	def create(self, db: Session, *, name: str, description: Optional[str], created_by: str) -> Dict[str, Any]:
+		"""Create a group and add the creator as admin."""
 		group = self.groups_repo.create(db, name=name, description=description, created_by=created_by)
 		# Ensure creator is a member and an admin (idempotent)
 		self.members_repo.add(db, group_id=str(group.id), user_id=created_by, role=GroupRoles.ADMIN)
@@ -31,10 +34,12 @@ class GroupsService:
 		}
 
 	def list_mine(self, db: Session, *, user_id: str) -> List[Dict[str, Any]]:
+		"""List groups the user belongs to."""
 		rows = self.groups_repo.list_mine(db, user_id=user_id)
 		return [{Fields.ID: str(g.id), Fields.NAME: g.name, Fields.DESCRIPTION: g.description} for g in rows]
 
 	def get(self, db: Session, *, group_id: str, user_id: str) -> Dict[str, Any]:
+		"""Get a group's details if the user is a member."""
 		group = self.groups_repo.get(db, group_id=group_id)
 		if group is None:
 			raise ValueError(Errors.GROUP_NOT_FOUND)
@@ -50,6 +55,7 @@ class GroupsService:
 		}
 
 	def update(self, db: Session, *, group_id: str, user_id: str, name: str, description: Optional[str]) -> Dict[str, Any]:
+		"""Update group name/description (admins only)."""
 		# Only admins can update group
 		role = self.members_repo.get(db, group_id=group_id, user_id=user_id)
 		if role is None or role.role != GroupRoles.ADMIN:
@@ -67,6 +73,7 @@ class GroupsService:
 		}
 
 	def delete(self, db: Session, *, group_id: str, user_id: str) -> None:
+		"""Delete a group (admins only)."""
 		# Only admins can delete; must be member
 		mine = self.members_repo.get(db, group_id=group_id, user_id=user_id)
 		if mine is None or mine.role != GroupRoles.ADMIN:
@@ -77,17 +84,20 @@ class GroupsService:
 
 
 class MembershipsService:
+	"""Service for managing group memberships and roles."""
 	def __init__(self, *, groups_repo: GroupsRepository | None = None, memberships_repo: GroupMembershipsRepository | None = None) -> None:
 		self.groups_repo = groups_repo or GroupsRepository()
 		self.repo = memberships_repo or GroupMembershipsRepository()
 		self.logger = logging.getLogger(__name__)
 
 	def _ensure_admin(self, db: Session, *, group_id: str, actor_id: str) -> None:
+		"""Validate the actor is an admin of the group."""
 		m = self.repo.get(db, group_id=group_id, user_id=actor_id)
 		if m is None or m.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
 
 	def list_by_group(self, db: Session, *, group_id: str, actor_id: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
+		"""List members of a group with roles."""
 		# Any member can list
 		m = self.repo.get(db, group_id=group_id, user_id=actor_id)
 		if m is None:
@@ -98,12 +108,14 @@ class MembershipsService:
 		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def add(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str = GroupRoles.MEMBER) -> Dict[str, Any]:
+		"""Add a user to a group (admin only)."""
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		row = self.repo.add(db, group_id=group_id, user_id=user_id, role=role)
 		self.logger.info(LogEvents.GROUP_MEMBER_ADDED, extra={Keys.GROUP_ID: group_id, Keys.ACTOR_ID: actor_id, Keys.TARGET_USER_ID: user_id, Fields.ROLE: role})
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def change_role(self, db: Session, *, group_id: str, actor_id: str, user_id: str, role: str) -> Dict[str, Any]:
+		"""Change a member's role (admin-only with last-admin safeguards)."""
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		# Do not allow demoting the creator from admin
 		group = self.groups_repo.get(db, group_id=group_id)
@@ -123,6 +135,7 @@ class MembershipsService:
 		return {Fields.ID: str(row.id), Keys.USER_ID: str(row.user_id), Fields.ROLE: row.role}
 
 	def remove(self, db: Session, *, group_id: str, actor_id: str, user_id: str) -> None:
+		"""Remove a user from a group (admin only, creator cannot be removed)."""
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		# Do not allow removing the creator from the group
 		group = self.groups_repo.get(db, group_id=group_id)
@@ -143,6 +156,7 @@ class MembershipsService:
 		return
 
 	def leave(self, db: Session, *, group_id: str, user_id: str) -> None:
+		"""Leave a group (creator cannot leave; last-admin safeguards apply)."""
 		# Creator cannot leave the group
 		group = self.groups_repo.get(db, group_id=group_id)
 		if group is None:

@@ -1,3 +1,4 @@
+"""Auth service and helpers: password hashing, token issuance/verification, and user signup/login flows."""
 import base64
 import hmac
 import json
@@ -95,6 +96,7 @@ def verify_token(token: str) -> Dict[str, Any]:
 
 
 class AuthService:
+    """Provide signup, login, token verification, and password change operations."""
     def signup(
         self,
         db: Session,
@@ -116,6 +118,7 @@ class AuthService:
         temp_bucket: Optional[str] = None,
         payment_info: Optional[Dict[str, Any]] = None,
     ) -> Tuple[User, str]:
+        """Create a new user and return (user, access_token)."""
         # normalize email/username casing BEFORE uniqueness checks
         username = (username or "").strip().lower()
         email = (email or "").strip().lower()
@@ -164,6 +167,7 @@ class AuthService:
         return user, token
 
     def login(self, db: Session, *, username: str, password: str) -> Tuple[User, str]:
+        """Authenticate by username or email and return (user, access_token)."""
         # normalize username/email for lookup
         username = (username or "").strip().lower()
         user = db.scalar(select(User).where(User.username == username))
@@ -176,6 +180,7 @@ class AuthService:
         return user, token
 
     def verify_token(self, token: str) -> Dict[str, Any]:
+        """Verify a bearer token and return its payload or raise ValueError."""
         return verify_token(token)
 
     def change_password(
@@ -186,6 +191,7 @@ class AuthService:
         current_password: str,
         new_password: str,
     ) -> None:
+        """Change the user's password after verifying the current password."""
         from backend.core.constants import Errors as Err
 
         if not verify_password(current_password, user.password_hash):

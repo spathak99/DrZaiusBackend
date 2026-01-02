@@ -1,3 +1,4 @@
+"""Email utilities: send invitation emails via SendGrid (or log in dev)."""
 import json
 import logging
 import urllib.request

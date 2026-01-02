@@ -1,3 +1,4 @@
+"""Payment codes service: manage creation, listing, voiding, and redemption of codes."""
 from __future__ import annotations
 
 import secrets
@@ -14,6 +15,7 @@ from backend.repositories.groups_repo import GroupsRepository
 
 
 class PaymentCodesService:
+	"""Service to create and administer group-bound payment codes."""
 	def __init__(
 		self,
 		*,
@@ -27,6 +29,7 @@ class PaymentCodesService:
 		self.logger = logging.getLogger(__name__)
 
 	def _ensure_admin(self, db: Session, *, group_id: str, actor_id: str) -> None:
+		"""Ensure the actor is an admin of the group."""
 		m = self.members.get(db, group_id=group_id, user_id=actor_id)
 		if m is None or m.role != GroupRoles.ADMIN:
 			raise ValueError(Errors.FORBIDDEN)
@@ -36,6 +39,7 @@ class PaymentCodesService:
 		return base64.urlsafe_b64encode(secrets.token_bytes(length)).decode("utf-8").rstrip("=")
 
 	def create_code(self, db: Session, *, group_id: str, actor_id: str, ttl_minutes: Optional[int] = None) -> Dict[str, Any]:
+		"""Create a new payment code, optionally with an expiry TTL."""
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		expires_at = None
 		if ttl_minutes and ttl_minutes > 0:
@@ -46,6 +50,7 @@ class PaymentCodesService:
 		return {Keys.CODE: row.code, Keys.STATUS: row.status, Keys.EXPIRES_AT: row.expires_at}
 
 	def list_codes(self, db: Session, *, group_id: str, actor_id: str, limit: int | None = None, offset: int | None = None) -> Dict[str, Any]:
+		"""List payment codes for a group, optionally paginated."""
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		# pagination (optional)
 		if limit is not None and offset is not None:
@@ -58,6 +63,7 @@ class PaymentCodesService:
 		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def void_code(self, db: Session, *, group_id: str, actor_id: str, code: str) -> Dict[str, Any]:
+		"""Void a payment code (admin only)."""
 		self._ensure_admin(db, group_id=group_id, actor_id=actor_id)
 		row = self.repo.get_by_code(db, code=code)
 		if row is None or str(row.group_id) != str(group_id):
@@ -67,6 +73,7 @@ class PaymentCodesService:
 		return {Keys.CODE: code, Keys.STATUS: PaymentCodeStatus.EXPIRED}
 
 	def redeem(self, db: Session, *, code: str, user_id: str) -> Dict[str, Any]:
+		"""Redeem a valid payment code for a user."""
 		row = self.repo.get_by_code(db, code=code)
 		if row is None:
 			raise ValueError(Errors.PAYMENT_CODE_NOT_FOUND)

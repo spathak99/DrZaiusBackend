@@ -1,3 +1,4 @@
+"""Group member invites service: manage invites to join a group."""
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
@@ -20,6 +21,7 @@ from backend.services.utils import ensure_admin
 
 
 class GroupMemberInvitesService:
+	"""Service to send/list/accept group member invitations."""
 	def __init__(self, *, repo: GroupMemberInvitesRepo | None = None, memberships: GroupMembershipsRepository | None = None) -> None:
 		self.repo: GroupMemberInvitesRepo = repo or GroupMemberInvitesRepository()
 		self.memberships = memberships or GroupMembershipsRepository()
@@ -31,6 +33,7 @@ class GroupMemberInvitesService:
 			raise ValueError(Errors.FORBIDDEN)
 
 	def send(self, db: Session, *, group_id: str, actor_id: str, email: str, full_name: Optional[str]) -> Dict[str, Any]:
+		"""Send a group member invite to an email address."""
 		# guard
 		ensure_admin(self.memberships, db, group_id=group_id, actor_id=actor_id)
 		# idempotent: if user exists, caller should add membership directly. Here we still send invite.
@@ -56,6 +59,7 @@ class GroupMemberInvitesService:
 		return resp
 
 	def list_pending(self, db: Session, *, group_id: str, limit: int, offset: int) -> Dict[str, Any]:
+		"""List pending invites for a group."""
 		total = self.repo.count_pending(db, group_id=group_id)
 		rows = self.repo.list_pending_paginated(db, group_id=group_id, limit=limit, offset=offset)
 		items = [
@@ -70,6 +74,7 @@ class GroupMemberInvitesService:
 		return {Keys.ITEMS: items, Keys.TOTAL: total}
 
 	def accept_by_token(self, db: Session, *, token: str) -> Dict[str, Any]:
+		"""Accept an invite via a signed token (deep link)."""
 		if not token:
 			raise ValueError(Errors.MISSING_TOKEN)
 		try:

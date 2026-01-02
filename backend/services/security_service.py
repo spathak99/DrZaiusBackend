@@ -1,3 +1,4 @@
+"""Security service: manage security policies and key operations (stubs)."""
 from typing import Any, Dict
 from backend.core.constants import Messages, Keys, Fields
 
