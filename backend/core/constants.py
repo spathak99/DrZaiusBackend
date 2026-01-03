@@ -366,6 +366,9 @@ class Keys:
     SENDER_ROLE: Final[str] = "senderRole"
     ACTOR_EMAIL: Final[str] = "actorEmail"
     DEPENDENT_ID: Final[str] = "dependentId"
+    # Additional keys for redaction/image previews and status
+    IMAGE_BASE64: Final[str] = "imageBase64"
+    CLIENT_READY: Final[str] = "clientReady"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"

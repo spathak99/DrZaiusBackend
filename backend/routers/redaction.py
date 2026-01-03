@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse
 import io
 import base64
 
-from backend.core.constants import Prefix, Tags, Summaries, MimeTypes, Encoding
+from backend.core.constants import Prefix, Tags, Summaries, MimeTypes, Encoding, Keys
 from backend.services.dlp_service import DlpService
 from backend.routers.deps import get_current_user, get_dlp_service
 from backend.db.models import User
@@ -53,10 +53,10 @@ async def redaction_status(
 	from backend.core.settings import get_settings
 	settings = get_settings()
 	return {
-		"enableDlp": settings.enable_dlp,
-		"projectId": settings.gcp_project_id,
-		"location": settings.dlp_location,
-		"clientReady": dlp.is_ready(),
+		Keys.ENABLE_DLP: settings.enable_dlp,
+		Keys.PROJECT_ID: settings.gcp_project_id,
+		Keys.LOCATION: settings.dlp_location,
+		Keys.CLIENT_READY: dlp.is_ready(),
 	}
 
 
@@ -81,7 +81,7 @@ async def redact_file(
 		redacted_bytes, _ = dlp.redact_content(content=data, mime_type=content_type)
 		if asBase64:
 			b64 = base64.b64encode(redacted_bytes).decode("ascii")
-			return {"imageBase64": b64, "mimeType": content_type or "image/png"}
+			return {Keys.IMAGE_BASE64: b64, Keys.MIME_TYPE: content_type or "image/png"}
 		return StreamingResponse(io.BytesIO(redacted_bytes), media_type=content_type or "image/png")
 
 	# Text flow: return JSON with redactedText and findings

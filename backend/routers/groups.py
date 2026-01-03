@@ -70,7 +70,7 @@ async def create_group(
     if (getattr(current_user, "account_type", None) or "").lower() != "group":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
     data = svc.create(db, name=payload.name, description=payload.description, created_by=str(current_user.id))
-    return {"data": GroupDetail(**{
+    return {Keys.DATA: GroupDetail(**{
         "id": data.get("id"),
         "name": data.get("name"),
         "description": data.get("description"),
@@ -84,7 +84,7 @@ async def list_my_groups(response: Response, current_user: User = Depends(get_cu
     rows = svc.list_mine(db, user_id=str(current_user.id))
     items = [GroupListItem(id=r["id"], name=r["name"], description=r.get("description")) for r in rows]
     response.headers[Headers.TOTAL_COUNT] = str(len(items))
-    return {"items": items}
+    return {Keys.ITEMS: items}
 
 
 # Dependents CRUD
@@ -177,7 +177,7 @@ async def get_group(id: str, current_user: User = Depends(get_current_user), db:
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    return {"data": GroupDetail(**{
+    return {Keys.DATA: GroupDetail(**{
         "id": data.get("id"),
         "name": data.get("name"),
         "description": data.get("description"),
@@ -199,7 +199,7 @@ async def update_group(
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    return {"data": GroupDetail(**{
+    return {Keys.DATA: GroupDetail(**{
         "id": data.get("id"),
         "name": data.get("name"),
         "description": data.get("description"),
@@ -305,7 +305,7 @@ async def add_member(
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    return {"message": Messages.GROUP_MEMBER_ADDED}
+    return {Keys.MESSAGE: Messages.GROUP_MEMBER_ADDED}
 
 
 @router.put(Routes.ID + Routes.ACCESS + Routes.USER_ID + Routes.ROLE, summary=Summaries.GROUP_MEMBER_UPDATE, response_model=ActionEnvelope)
@@ -324,7 +324,7 @@ async def change_role(
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    return {"message": Messages.GROUP_MEMBER_ROLE_UPDATED}
+    return {Keys.MESSAGE: Messages.GROUP_MEMBER_ROLE_UPDATED}
 
 
 @router.delete(Routes.ID + Routes.ACCESS + Routes.USER_ID, status_code=status.HTTP_204_NO_CONTENT, summary=Summaries.GROUP_MEMBER_REMOVE)
@@ -354,12 +354,12 @@ async def send_group_member_invite(
     except ValueError as e:
         detail = str(e)
         raise HTTPException(status_code=status_for_error(detail), detail=detail)
-    return {"message": Messages.INVITATION_SENT, "data": GroupMemberInviteItem(**{
+    return {Keys.MESSAGE: Messages.INVITATION_SENT, Keys.DATA: GroupMemberInviteItem(**{
         "id": data.get(Fields.ID),
         "invited_email": data.get(Keys.INVITED_EMAIL),
         "invited_full_name": data.get(Keys.INVITED_FULL_NAME),
         "status": data.get(Keys.STATUS),
-        "acceptUrl": data.get(Keys.ACCEPT_URL),
+        Keys.ACCEPT_URL: data.get(Keys.ACCEPT_URL),
     })}
 
 

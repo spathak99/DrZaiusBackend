@@ -88,6 +88,6 @@ async def redeem_code(
 	except ValueError as e:
 		detail = str(e)
 		raise HTTPException(status_code=status_for_error(detail), detail=detail)
-	return {"message": data.get(Keys.MESSAGE), "code": data.get(Keys.CODE)}
+	return {Keys.MESSAGE: data.get(Keys.MESSAGE), Keys.CODE: data.get(Keys.CODE)}
 
 
