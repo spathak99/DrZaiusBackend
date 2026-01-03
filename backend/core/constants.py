@@ -369,6 +369,7 @@ class Keys:
     # Additional keys for redaction/image previews and status
     IMAGE_BASE64: Final[str] = "imageBase64"
     CLIENT_READY: Final[str] = "clientReady"
+    REDACTED_TYPES_COUNT: Final[str] = "redacted_types_count"
 
 class Headers:
     TOTAL_COUNT: Final[str] = "X-Total-Count"

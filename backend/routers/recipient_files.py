@@ -218,7 +218,7 @@ async def redact_and_upload_recipient_file(
         )
         logger.info(
             LogEvents.FILE_REDACT_QUEUED,
-            extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, "redacted_types_count": len(redacted_types)},
+            extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED_TYPES_COUNT: len(redacted_types)},
         )
         return {
             Keys.MESSAGE: Messages.FILE_QUEUED,
@@ -235,7 +235,7 @@ async def redact_and_upload_recipient_file(
         content_type=mime,
         content=redacted_bytes,
     )
-    logger.info(LogEvents.FILE_REDACT_UPLOADED, extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, "redacted_types_count": len(redacted_types)})
+    logger.info(LogEvents.FILE_REDACT_UPLOADED, extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED_TYPES_COUNT: len(redacted_types)})
     return {
         Keys.MESSAGE: Messages.FILE_UPLOADED,
         Keys.RECIPIENT_ID: id,

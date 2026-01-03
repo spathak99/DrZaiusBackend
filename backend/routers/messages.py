@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body, status, Depends, HTTPException
-from backend.core.constants import Prefix, Tags, Summaries, Routes, Keys, ChatKeys, Errors
+from backend.core.constants import Prefix, Tags, Summaries, Routes, Keys, ChatKeys, Errors, ChatRoles
 from backend.schemas import MessageCreate, MessageUpdate
 from backend.services import ChatHistoryService
 from backend.routers.deps import get_current_user
@@ -23,8 +23,8 @@ async def create_message(
     return history.create_message(
         history_uri=current_user.chat_history_uri,
         chat_id=chatId,
-        content=body.get("content", ""),
-        role="user",
+        content=body.get(ChatKeys.CONTENT, ""),
+        role=ChatRoles.USER,
     )
 
 
@@ -57,8 +57,8 @@ async def update_message(
     return history.create_message(
         history_uri=current_user.chat_history_uri,
         chat_id=chatId,
-        content=body.get("content", ""),
-        role="user",
+        content=body.get(ChatKeys.CONTENT, ""),
+        role=ChatRoles.USER,
     )
 
 
