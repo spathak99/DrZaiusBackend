@@ -121,6 +121,12 @@ class DlpService:
 
         # Default to text processing
         text_value = content.decode(Encoding.UTF8, errors="ignore")
+        # Safety cap large inputs
+        if len(text_value.encode(Encoding.UTF8)) > Dlp.MAX_TEXT_BYTES:
+            self._logger.warning("dlp_text_truncated: sizeBytes=%s cap=%s", len(text_value.encode(Encoding.UTF8)), Dlp.MAX_TEXT_BYTES)
+            # Truncate by bytes to avoid splitting multi-byte mid-character
+            text_bytes = text_value.encode(Encoding.UTF8)[: Dlp.MAX_TEXT_BYTES]
+            text_value = text_bytes.decode(Encoding.UTF8, errors="ignore")
 
         # First inspect to capture findings for caller UX
         inspect_resp = self._client.inspect_content(

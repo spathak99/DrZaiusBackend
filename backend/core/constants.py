@@ -395,6 +395,8 @@ class Dlp:
     CUSTOM_SSN_NAME: Final[str] = "CUSTOM_SSN"
     REGEX_SSN: Final[str] = r"\b\d{3}-\d{2}-\d{4}\b"
     PARENT_PATH_TEMPLATE: Final[str] = "projects/{project_id}/locations/{location}"
+    # Safety cap for in-memory text processing (bytes)
+    MAX_TEXT_BYTES: Final[int] = 1_000_000
     # Default set of info types to inspect/redact when not explicitly configured
     DEFAULT_INFO_TYPES: Final[list[str]] = [
         "EMAIL_ADDRESS",
