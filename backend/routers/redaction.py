@@ -8,9 +8,10 @@ Provides:
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, Depends, status, UploadFile, File, HTTPException
+from fastapi import APIRouter, Body, Depends, status, UploadFile, File, HTTPException, Query
 from fastapi.responses import StreamingResponse
 import io
+import base64
 
 from backend.core.constants import Prefix, Tags, Summaries, MimeTypes, Encoding
 from backend.services.dlp_service import DlpService
@@ -62,6 +63,7 @@ async def redaction_status(
 @router.post("/file", status_code=status.HTTP_200_OK, summary="Redact an uploaded file (text or image)")
 async def redact_file(
 	file: UploadFile = File(...),
+	asBase64: bool = Query(default=False, description="When true for image/*, return JSON with base64 instead of streaming"),
 	dlp: DlpService = Depends(get_dlp_service),
 	current_user: User = Depends(get_current_user),
 ):
@@ -77,6 +79,9 @@ async def redact_file(
 	# Image flow: return redacted bytes, no findings
 	if content_type.startswith(MimeTypes.IMAGE_PREFIX):
 		redacted_bytes, _ = dlp.redact_content(content=data, mime_type=content_type)
+		if asBase64:
+			b64 = base64.b64encode(redacted_bytes).decode("ascii")
+			return {"imageBase64": b64, "mimeType": content_type or "image/png"}
 		return StreamingResponse(io.BytesIO(redacted_bytes), media_type=content_type or "image/png")
 
 	# Text flow: return JSON with redactedText and findings
