@@ -11,7 +11,7 @@ from fastapi import APIRouter, status, Depends, HTTPException, UploadFile, File
 import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors, MimeTypes, Upload, LogEvents
+from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors, MimeTypes, Upload, LogEvents, Uploads
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
 from backend.services import DocsService, IngestionService
@@ -69,14 +69,7 @@ async def upload_recipient_file(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=Errors.PAYLOAD_TOO_LARGE)
     mime = file.content_type or MimeTypes.APPLICATION_OCTET_STREAM
     # Allow common text types in addition to images/PDF for pre-MVP
-    allowed = {
-        MimeTypes.APPLICATION_PDF,
-        MimeTypes.IMAGE_PNG,
-        MimeTypes.IMAGE_JPEG,
-        MimeTypes.TEXT_PLAIN,
-        MimeTypes.APPLICATION_JSON,
-    }
-    if mime not in allowed:
+    if mime not in Uploads.ALLOWED_MIME_TYPES:
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=Errors.UNSUPPORTED_MEDIA_TYPE)
     # DLP redaction (feature-flagged and client-ready)
     redacted_bytes = content
@@ -207,7 +200,7 @@ async def redact_and_upload_recipient_file(
     if size_bytes > max_bytes:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=Errors.PAYLOAD_TOO_LARGE)
     mime = file.content_type or MimeTypes.APPLICATION_OCTET_STREAM
-    if mime not in (MimeTypes.APPLICATION_PDF, MimeTypes.IMAGE_PNG, MimeTypes.IMAGE_JPEG):
+    if mime not in Uploads.ALLOWED_MIME_TYPES:
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=Errors.UNSUPPORTED_MEDIA_TYPE)
     redacted_bytes, findings = dlp.redact_content(content=raw, mime_type=mime)
     redacted_types: List[str] = sorted({str((f or {}).get("info_type", "")).strip() for f in findings if (f or {}).get("info_type")})
@@ -223,11 +216,17 @@ async def redact_and_upload_recipient_file(
             content_type=mime,
             content=redacted_bytes,
         )
-    logger.info(LogEvents.FILE_REDACT_QUEUED, extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, "redacted_types_count": len(redacted_types)})
+        logger.info(
+            LogEvents.FILE_REDACT_QUEUED,
+            extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, "redacted_types_count": len(redacted_types)},
+        )
         return {
             Keys.MESSAGE: Messages.FILE_QUEUED,
             Keys.RECIPIENT_ID: id,
-            Keys.DATA: {**job, "redacted_types": redacted_types, "findings": findings},
+            Keys.MIME_TYPE: mime,
+            Keys.REDACTED: redacted_bytes != raw,
+            Keys.FINDINGS: findings,
+            Keys.DATA: {**job, Keys.REDACTED_TYPES: redacted_types},
         }
     # Direct upload to corpus
     created = docs.upload_doc(
@@ -240,7 +239,10 @@ async def redact_and_upload_recipient_file(
     return {
         Keys.MESSAGE: Messages.FILE_UPLOADED,
         Keys.RECIPIENT_ID: id,
-        Keys.DATA: {**created, "redacted_types": redacted_types, "findings": findings},
+        Keys.MIME_TYPE: mime,
+        Keys.REDACTED: redacted_bytes != raw,
+        Keys.FINDINGS: findings,
+        Keys.DATA: {**created, Keys.REDACTED_TYPES: redacted_types},
     }
 
 

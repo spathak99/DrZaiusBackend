@@ -448,6 +448,15 @@ class MimeTypes:
     IMAGE_JPEG: Final[str] = "image/jpeg"
     IMAGE_PREFIX: Final[str] = "image/"
 
+class Uploads:
+    # Allowed MIME types for uploads
+    ALLOWED_MIME_TYPES: Final[set[str]] = {
+        MimeTypes.APPLICATION_PDF,
+        MimeTypes.IMAGE_PNG,
+        MimeTypes.IMAGE_JPEG,
+        MimeTypes.TEXT_PLAIN,
+        MimeTypes.APPLICATION_JSON,
+    }
 
 class ChatKeys:
     MESSAGE_ID: Final[str] = "messageId"
