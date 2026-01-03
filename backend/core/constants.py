@@ -279,6 +279,15 @@ class Errors:
     PAYMENT_CODE_EXPIRED: Final[str] = "payment_code_expired"
     PAYMENT_CODE_REDEEMED_ALREADY: Final[str] = "payment_code_redeemed_already"
 
+class ErrorCodes:
+    # Upstream/provider errors
+    DLP_ERROR: Final[str] = "dlp_error"
+    DOCS_ERROR: Final[str] = "docs_error"
+    INGESTION_ERROR: Final[str] = "ingestion_error"
+    CHAT_HISTORY_ERROR: Final[str] = "chat_history_error"
+    RAG_PROVIDER_ERROR: Final[str] = "rag_provider_error"
+    RATE_LIMITED: Final[str] = "rate_limited"
+
 
 class Defaults:
     # Storage and path defaults

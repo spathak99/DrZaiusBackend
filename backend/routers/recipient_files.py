@@ -12,6 +12,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from backend.core.constants import Prefix, Tags, Summaries, Messages, Routes, Keys, Errors, MimeTypes, Upload, LogEvents, Uploads
+from backend.core.exceptions import AppError, to_http, DlpError, IngestionError, DocsError
 from backend.db.database import get_db
 from backend.db.models import User, RecipientCaregiverAccess
 from backend.services import DocsService, IngestionService
@@ -19,6 +20,7 @@ from backend.services.dlp_service import DlpService
 from backend.core.settings import get_settings
 from backend.routers.deps import get_current_user, get_docs_service, get_ingestion_service, get_dlp_service
 from backend.schemas.redaction import RedactUploadResponse
+from backend.routers.helpers.access import assert_can_access_recipient
 
 
 logger = logging.getLogger(__name__)
@@ -29,18 +31,8 @@ router = APIRouter(prefix=Prefix.RECIPIENT_FILES, tags=[Tags.RECIPIENT_DATA], de
 settings = get_settings()
 
 def _assert_can_access_recipient(db: Session, recipient_id: str, current_user: User) -> None:
-    # Allow self
-    if str(current_user.id) == recipient_id:
-        return
-    # Otherwise require caregiver access row
-    allowed = db.scalar(
-        select(RecipientCaregiverAccess).where(
-            RecipientCaregiverAccess.recipient_id == recipient_id,
-            RecipientCaregiverAccess.caregiver_id == current_user.id,
-        )
-    )
-    if not allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Errors.FORBIDDEN)
+    # Backwards compatibility wrapper while refactoring callers progressively
+    return assert_can_access_recipient(db, recipient_id, current_user)
 
 @router.post(Routes.ROOT, status_code=status.HTTP_201_CREATED, summary=Summaries.FILE_UPLOAD)
 async def upload_recipient_file(
@@ -76,22 +68,38 @@ async def upload_recipient_file(
     findings: List[Dict[str, Any]] = []
     attempted_redaction = False
     if settings.enable_dlp and dlp.is_ready():
-        if mime.startswith(MimeTypes.IMAGE_PREFIX) or mime.startswith("text/") or mime in (MimeTypes.APPLICATION_JSON,):
-            attempted_redaction = True
-            redacted_bytes, findings = dlp.redact_content(content=content, mime_type=mime if mime.startswith(MimeTypes.IMAGE_PREFIX) else MimeTypes.TEXT_PLAIN)
+		if mime.startswith(MimeTypes.IMAGE_PREFIX) or mime.startswith("text/") or mime in (MimeTypes.APPLICATION_JSON,):
+			attempted_redaction = True
+			try:
+				redacted_bytes, findings = dlp.redact_content(
+					content=content,
+					mime_type=mime if mime.startswith(MimeTypes.IMAGE_PREFIX) else MimeTypes.TEXT_PLAIN,
+				)
+			except AppError as e:
+				raise to_http(e)
+			except Exception:
+				# Fail open: proceed with original content if provider fails
+				logger.warning("dlp_redact_failed", extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime})
+				redacted_bytes, findings = content, []
     redacted_flag = redacted_bytes != content
     # If pipeline is enabled, enqueue to temp bucket + Pub/Sub instead of direct RAG
     if settings.enable_pipeline:
         if not user.gcp_project_id or not user.temp_bucket:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.MISSING_INGESTION_CONFIG)
-        job = ingestion.enqueue_ingestion(
-            user_id=str(user.id),
-            gcp_project_id=user.gcp_project_id,
-            temp_bucket=user.temp_bucket,
-            file_name=file.filename or "upload",
-            content_type=mime,
-            content=redacted_bytes,
-        )
+		try:
+			job = ingestion.enqueue_ingestion(
+				user_id=str(user.id),
+				gcp_project_id=user.gcp_project_id,
+				temp_bucket=user.temp_bucket,
+				file_name=file.filename or "upload",
+				content_type=mime,
+				content=redacted_bytes,
+			)
+		except AppError as e:
+			raise to_http(e)
+		except Exception:
+			logger.error("ingestion_enqueue_failed", extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime})
+			raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=Errors.INTERNAL_ERROR)
         logger.info(
             LogEvents.FILE_REDACT_QUEUED if redacted_flag else LogEvents.FILE_QUEUED,
             extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED: redacted_flag},
@@ -109,7 +117,13 @@ async def upload_recipient_file(
             Keys.DATA: data,
         }
     # Default: direct ingestion to RAG
-    created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=mime, content=redacted_bytes)
+	try:
+		created = docs.upload_doc(corpus_uri=user.corpus_uri, file_name=file.filename, content_type=mime, content=redacted_bytes)
+	except AppError as e:
+		raise to_http(e)
+	except Exception:
+		logger.error("docs_upload_failed", extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime})
+		raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=Errors.INTERNAL_ERROR)
     logger.info(
         LogEvents.FILE_REDACT_UPLOADED if redacted_flag else LogEvents.FILE_UPLOADED,
         extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED: redacted_flag},
@@ -138,7 +152,10 @@ async def list_recipient_files(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
     _assert_can_access_recipient(db, id, current_user)
-    items = docs.list_docs(corpus_uri=user.corpus_uri)
+    try:
+        items = docs.list_docs(corpus_uri=user.corpus_uri)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=Errors.INTERNAL_ERROR)
     return {Keys.RECIPIENT_ID: id, Keys.ITEMS: items}
 
 
@@ -154,7 +171,10 @@ async def get_recipient_file(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Errors.RECIPIENT_NOT_FOUND)
     _assert_can_access_recipient(db, id, current_user)
-    doc = docs.get_doc(corpus_uri=user.corpus_uri, doc_id=fileId)
+    try:
+        doc = docs.get_doc(corpus_uri=user.corpus_uri, doc_id=fileId)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=Errors.INTERNAL_ERROR)
     return {Keys.RECIPIENT_ID: id, Keys.FILE_ID: fileId, Keys.DATA: doc}
 
 
@@ -170,7 +190,10 @@ async def delete_recipient_file(
     if user is None:
         raise HTTPException(status_code=404, detail=Errors.RECIPIENT_NOT_FOUND)
     _assert_can_access_recipient(db, id, current_user)
-    docs.delete_doc(corpus_uri=user.corpus_uri, doc_id=fileId)
+    try:
+        docs.delete_doc(corpus_uri=user.corpus_uri, doc_id=fileId)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=Errors.INTERNAL_ERROR)
     return
 
 
@@ -202,20 +225,32 @@ async def redact_and_upload_recipient_file(
     mime = file.content_type or MimeTypes.APPLICATION_OCTET_STREAM
     if mime not in Uploads.ALLOWED_MIME_TYPES:
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=Errors.UNSUPPORTED_MEDIA_TYPE)
-    redacted_bytes, findings = dlp.redact_content(content=raw, mime_type=mime)
+	try:
+		redacted_bytes, findings = dlp.redact_content(content=raw, mime_type=mime)
+	except AppError as e:
+		raise to_http(e)
+	except Exception:
+		logger.warning("dlp_redact_failed", extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime})
+		redacted_bytes, findings = raw, []
     redacted_types: List[str] = sorted({str((f or {}).get("info_type", "")).strip() for f in findings if (f or {}).get("info_type")})
     # Ingestion path
     if settings.enable_pipeline:
         if not user.gcp_project_id or not user.temp_bucket:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Errors.MISSING_INGESTION_CONFIG)
-        job = ingestion.enqueue_ingestion(
-            user_id=str(user.id),
-            gcp_project_id=user.gcp_project_id,
-            temp_bucket=user.temp_bucket,
-            file_name=file.filename or "upload",
-            content_type=mime,
-            content=redacted_bytes,
-        )
+		try:
+			job = ingestion.enqueue_ingestion(
+				user_id=str(user.id),
+				gcp_project_id=user.gcp_project_id,
+				temp_bucket=user.temp_bucket,
+				file_name=file.filename or "upload",
+				content_type=mime,
+				content=redacted_bytes,
+			)
+		except AppError as e:
+			raise to_http(e)
+		except Exception:
+			logger.error("ingestion_enqueue_failed", extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime})
+			raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=Errors.INTERNAL_ERROR)
         logger.info(
             LogEvents.FILE_REDACT_QUEUED,
             extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED_TYPES_COUNT: len(redacted_types)},
@@ -229,12 +264,18 @@ async def redact_and_upload_recipient_file(
             Keys.DATA: {**job, Keys.REDACTED_TYPES: redacted_types},
         }
     # Direct upload to corpus
-    created = docs.upload_doc(
-        corpus_uri=user.corpus_uri,
-        file_name=file.filename or "upload",
-        content_type=mime,
-        content=redacted_bytes,
-    )
+	try:
+		created = docs.upload_doc(
+			corpus_uri=user.corpus_uri,
+			file_name=file.filename or "upload",
+			content_type=mime,
+			content=redacted_bytes,
+		)
+	except AppError as e:
+		raise to_http(e)
+	except Exception:
+		logger.error("docs_upload_failed", extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime})
+		raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=Errors.INTERNAL_ERROR)
     logger.info(LogEvents.FILE_REDACT_UPLOADED, extra={Keys.RECIPIENT_ID: id, Keys.MIME_TYPE: mime, Keys.SIZE_BYTES: size_bytes, Keys.REDACTED_TYPES_COUNT: len(redacted_types)})
     return {
         Keys.MESSAGE: Messages.FILE_UPLOADED,
