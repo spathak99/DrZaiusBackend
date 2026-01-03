@@ -339,6 +339,8 @@ class Keys:
     DOWNLOAD: Final[str] = "download"
     EMBEDDINGS: Final[str] = "embeddings"
     REQUEST_ID: Final[str] = "requestId"
+    DETAILS: Final[str] = "details"
+    RETRY_AFTER: Final[str] = "retryAfter"
     DB: Final[str] = "db"
     ENABLE_PIPELINE: Final[str] = "enablePipeline"
     ENABLE_DLP: Final[str] = "enableDlp"

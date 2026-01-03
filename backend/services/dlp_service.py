@@ -81,8 +81,8 @@ class DlpService:
         # Strengthen SSN detection with a simple custom regex fallback (custom, not built-in)
         custom_info_types: List[Dict[str, Any]] = [
             {
-                "info_type": {"name": Dlp.CUSTOM_SSN_NAME},
-                "regex": {"pattern": Dlp.REGEX_SSN},
+                DlpReq.INFO_TYPE: {"name": Dlp.CUSTOM_SSN_NAME},
+                DlpReq.REGEX: {DlpReq.PATTERN: Dlp.REGEX_SSN},
             }
         ]
         # Only pass built-in info types in the standard list; custom type is provided separately

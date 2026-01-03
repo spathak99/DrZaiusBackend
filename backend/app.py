@@ -67,12 +67,12 @@ app.add_middleware(RequestIdMiddleware)
 # Exception handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    body = {Keys.MESSAGE: Errors.INVALID_PAYLOAD, "details": exc.errors(), Keys.REQUEST_ID: getattr(request.state, "request_id", None)}
+    body = {Keys.MESSAGE: Errors.INVALID_PAYLOAD, Keys.DETAILS: exc.errors(), Keys.REQUEST_ID: getattr(request.state, "request_id", None)}
     return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=body)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.exception("unhandled exception", extra={"requestId": getattr(request.state, "request_id", None)})
+    logger.exception("unhandled exception", extra={Keys.REQUEST_ID: getattr(request.state, "request_id", None)})
     body = {Keys.MESSAGE: Errors.INTERNAL_ERROR, Keys.REQUEST_ID: getattr(request.state, "request_id", None)}
     return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=body)
 
@@ -108,7 +108,7 @@ if getattr(_settings, "enable_rate_limiting", False) and RateLimitExceeded is no
         retry_after = getattr(exc, "detail", None)
         body = {Keys.MESSAGE: "rate_limited", Keys.REQUEST_ID: getattr(request.state, "request_id", None)}
         if retry_after is not None:
-            body["retryAfter"] = str(retry_after)
+            body[Keys.RETRY_AFTER] = str(retry_after)
         response = JSONResponse(status_code=status.HTTP_429_TOO_MANY_REQUESTS, content=body)
         if retry_after is not None:
             try:
